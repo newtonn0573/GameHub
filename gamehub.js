@@ -10,8 +10,8 @@ javascript:(function(){
 let currentCleanup = null;
 
 const SITE_ANNOUNCEMENT={
-    title:"hi guys",
-    text:"this wednsday, meet me at the front gate, I am buying 20 people ice cream!",
+    title:"Game Hub v2",
+    text:"6767676767",
     accent:"#67e8f9"
 };
 
@@ -526,9 +526,6 @@ function showMainMenu(){
         ["🐍  SNAKE","#27ae60",startSnake],
         ["🏃  ENDLESS RUNNER","#d35400",startEndlessRunner],
         ["🧱  BREAKOUT","#c0392b",startBreakout],
-        ["🏓  PONG","#16a085",startPong],
-        ["❌  TIC TAC TOE","#45b5ff",startTicTacToe],
-        ["🕹️  2P DUEL","#ff5aa0",startTwoPlayerDuel],
         ["🔢  2048","#f39c12",start2048],
         ["🧠  MEMORY MATCH","#2980b9",startMemoryMatch],
         ["☄️  ASTEROIDS","#34495e",startAsteroids],
@@ -563,12 +560,10 @@ function showMainMenu(){
     const multiplayerGrid=makeSection("2 PLAYER");
 
     for(const [label,color,fn] of GAME_LIST){
-        const target=label.includes("2P") || label.includes("PONG") || label.includes("TIC TAC") ? multiplayerGrid : singlePlayerGrid;
-
         makeButton(label,color,function(){
             menu.remove();
             fn();
-        },target);
+        },singlePlayerGrid);
     }
 
     for(const [label,color,fn] of MULTIPLAYER_GAMES){
