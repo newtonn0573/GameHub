@@ -417,8 +417,46 @@ function showMainMenu(){
 
     content.appendChild(grid);
 
+    function makeSection(titleText){
+        const section=document.createElement("div");
+        Object.assign(section.style,{
+            width:"min(960px, calc(100% - 32px))",
+            margin:"8px 0 6px",
+            display:"flex",
+            flexDirection:"column",
+            gap:"10px"
+        });
 
-    function makeButton(text,color,callback){
+        const label=document.createElement("div");
+        label.textContent=titleText;
+        Object.assign(label.style,{
+            color:"#dbeafe",
+            fontSize:"12px",
+            fontWeight:"900",
+            letterSpacing:"4px",
+            textTransform:"uppercase",
+            opacity:"0.9",
+            margin:"8px 0 2px 8px"
+        });
+
+        const sectionGrid=document.createElement("div");
+        Object.assign(sectionGrid.style,{
+            display:"grid",
+            gridTemplateColumns:"repeat(auto-fit,minmax(220px,260px))",
+            gap:"10px",
+            justifyContent:"center",
+            width:"100%"
+        });
+
+        section.appendChild(label);
+        section.appendChild(sectionGrid);
+        content.appendChild(section);
+
+        return sectionGrid;
+    }
+
+
+    function makeButton(text,color,callback,container=grid){
 
         const b=document.createElement("button");
 
@@ -472,7 +510,7 @@ function showMainMenu(){
 
         b.onclick=callback;
 
-        grid.appendChild(b);
+        container.appendChild(b);
     }
 
 
@@ -498,18 +536,38 @@ function showMainMenu(){
         ["💎  JEWEL SWAP","#7a3fd6",startJewelSwap]
     ];
 
+    const MULTIPLAYER_GAMES=[
+        ["🏓  PONG","#16a085",startPong],
+        ["❌  TIC TAC TOE","#45b5ff",startTicTacToe],
+        ["🕹️  2P DUEL","#ff5aa0",startTwoPlayerDuel],
+        ["⚔️  BRAWL BOX","#6d28d9",startTwoPlayerDuel],
+        ["🎯  TARGET BATTLE","#f59e0b",startTwoPlayerDuel],
+        ["🛡️  SHIELD RACE","#10b981",startTwoPlayerDuel]
+    ];
+
     const QUICK_EXTRA_GAMES=[
         "NEON DRIFT","PIXEL RUSH","GALAXY GRAB","ROCKET RALLY","SHADOW LAPSE","HYPER SPARK","STAR ROVER","FUSION JUMP","NOVA DASH","MEGA RING","QUICK STRIKE","VECTOR VORTEX","CYBER BOUNCE","MIDNIGHT SWIPE","PULSE PUNCH","SYNTH GLIDE","GLITCH GUNNER","MARTIAN DRIFT","ARC FLASH","SUNSET RACE","FROST FLYER","JUNGLE BOUNCE","TURBO POP","VOLT RUSH","ORBIT DODGE","BLAZE LOOP","MEGABLAST","COMET CLASH","WARP WAVE","LUNAR PUNCH","BOLT BATTLE","STAR FLAIR","SKY SHUFFLE","ROBOT RUN","DRAGON FLIP","DARK DIVER","ECHO PULSE","FLASH CRAFT","COSMIC CHARGE","TITAN TILT","METAL MARCH","SILVER SWIPE","RIVER POP","ICE IMPULSE","PLASMA PATH","QUICK COMET","LIGHTNING MAP","STORM SPRINT","SPARK RUSH","MOON TRAP","FANTASY FLY","NINJA CROWN","RALLY RING","DROPLET DASH","RAZOR RUN","HARBOR JUMP","GLOW GRID","PICO CHASE","ARC RUSH","ATLAS FUSE","HOTLINE TAP","BUBBLE POP","TURBO SPARK","GRAVITY BLAZE","VIBRANT VIBE","BLIZZARD BOLT","TIDE TAPPER","LAVA LIFT","ULTRA RAIL","SPEED SPARK","NEON CRASH","CLOUD BARRIER","PULSE GLIDE","AQUA BOLT","wind burst","sunset lane","midnight twist","stream sprint","crystal drift","pixel storm","bright rush","dusk dare","flux orbit"
     ];
 
     const EXTRA_GAME_POOL=[startWavePro,startTowerDefense,startRagdollArchers,startSnake,startEndlessRunner,startBreakout,startPong,startTicTacToe,startTwoPlayerDuel,start2048,startMemoryMatch,startAsteroids,startTetris,startSpaceInvaders,startFlappyBird,startStackTower,startBubbleShooter,startFruitSlice,startJewelSwap];
 
+    const singlePlayerGrid=makeSection("SINGLE PLAYER");
+    const multiplayerGrid=makeSection("2 PLAYER");
+
     for(const [label,color,fn] of GAME_LIST){
+        const target=label.includes("2P") || label.includes("PONG") || label.includes("TIC TAC") ? multiplayerGrid : singlePlayerGrid;
 
         makeButton(label,color,function(){
             menu.remove();
             fn();
-        });
+        },target);
+    }
+
+    for(const [label,color,fn] of MULTIPLAYER_GAMES){
+        makeButton(label,color,function(){
+            menu.remove();
+            fn();
+        },multiplayerGrid);
     }
 
     for(let i=0;i<QUICK_EXTRA_GAMES.length;i++){
@@ -520,7 +578,7 @@ function showMainMenu(){
             menu.remove();
             const randomFn=EXTRA_GAME_POOL[Math.floor(Math.random()*EXTRA_GAME_POOL.length)];
             randomFn();
-        });
+        },singlePlayerGrid);
     }
 
     document.body.appendChild(menu);
