@@ -461,56 +461,97 @@ function showMainMenu(){
     }
 
 
-    function makeButton(text,color,callback,container=grid){
+    function makeButton(label,color,callback,container=grid,description=""){
 
         const b=document.createElement("button");
+        b.type="button";
 
-        b.textContent=text;
+        const titleRow=document.createElement("div");
+        titleRow.textContent=label;
+        Object.assign(titleRow.style,{
+            fontSize:"19px",
+            fontWeight:"900",
+            letterSpacing:"0.6px",
+            textAlign:"left",
+            width:"100%"
+        });
+
+        const desc=document.createElement("div");
+        desc.textContent=description;
+        Object.assign(desc.style,{
+            marginTop:"8px",
+            fontSize:"12px",
+            lineHeight:"1.35",
+            color:"rgba(255,255,255,.82)",
+            textAlign:"left",
+            width:"100%",
+            fontWeight:"600"
+        });
+
+        const inner=document.createElement("div");
+        Object.assign(inner.style,{
+            display:"flex",
+            flexDirection:"column",
+            alignItems:"flex-start",
+            justifyContent:"center",
+            width:"100%",
+            height:"100%"
+        });
+        inner.appendChild(titleRow);
+        inner.appendChild(desc);
+        b.appendChild(inner);
 
         Object.assign(b.style,{
             width:"100%",
-            minHeight:"64px",
-            border:"1px solid rgba(255,255,255,.2)",
-            borderRadius:"16px",
+            minHeight:"120px",
+            border:"1px solid rgba(255,255,255,.22)",
+            borderRadius:"18px",
+            padding:"16px 18px",
             background:
                 "linear-gradient(135deg,"+
                 color+
-                " 0%,rgba(24,28,38,.90) 100%)",
+                " 0%,rgba(14,18,28,.95) 100%)",
             color:"#fff",
             fontSize:"17px",
             fontWeight:"bold",
             cursor:"pointer",
             boxShadow:
-                "0 0 20px rgba(255,255,255,.08), 0 10px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.28)",
+                "0 0 22px rgba(255,255,255,.08), 0 12px 30px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.28)",
             transition:"transform .12s ease, filter .12s ease, box-shadow .12s ease",
             touchAction:"manipulation",
-            letterSpacing:"0.4px"
+            letterSpacing:"0.4px",
+            textAlign:"left",
+            display:"flex",
+            alignItems:"stretch",
+            justifyContent:"center"
         });
 
         b.onpointerdown=function(){
-            b.style.transform="scale(.97)";
+            b.style.transform="scale(.985)";
             b.style.filter="brightness(1.18)";
-            b.style.boxShadow="0 0 26px rgba(255,255,255,.18), 0 8px 22px rgba(0,0,0,.30)";
+            b.style.boxShadow="0 0 28px rgba(255,255,255,.18), 0 12px 22px rgba(0,0,0,.30)";
         };
 
         b.onpointerup=function(){
             b.style.transform="scale(1)";
             b.style.filter="brightness(1)";
-            b.style.boxShadow="0 0 20px rgba(255,255,255,.08), 0 10px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.28)";
+            b.style.boxShadow="0 0 22px rgba(255,255,255,.08), 0 12px 30px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.28)";
         };
 
         b.onpointercancel=function(){
             b.style.transform="scale(1)";
             b.style.filter="brightness(1)";
-            b.style.boxShadow="0 0 20px rgba(255,255,255,.08), 0 10px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.28)";
+            b.style.boxShadow="0 0 22px rgba(255,255,255,.08), 0 12px 30px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.28)";
         };
 
         b.onmouseenter=function(){
             b.style.transform="translateY(-2px)";
+            b.style.filter="brightness(1.05)";
         };
 
         b.onmouseleave=function(){
             b.style.transform="translateY(0)";
+            b.style.filter="brightness(1)";
         };
 
         b.onclick=callback;
@@ -518,6 +559,36 @@ function showMainMenu(){
         container.appendChild(b);
     }
 
+    const GAME_DETAILS={
+        "🌊  WAVE PRO":"Defend the base and survive the incoming wave rush.",
+        "🏰  TOWER DEFENSE":"Build towers and stop the enemy path before it reaches your core.",
+        "🏹  RAGDOLL ARCHERS":"Fire archers and chase ragdoll chaos in a battlefield full of motion.",
+        "🐍  SNAKE":"Eat, grow, and avoid crashing into your own tail.",
+        "🏃  ENDLESS RUNNER":"Keep dodging and distance yourself from the endless obstacles.",
+        "🧱  BREAKOUT":"Bounce the ball and smash every brick before your lives run out.",
+        "🔢  2048":"Merge matching tiles until you reach the biggest number possible.",
+        "🧠  MEMORY MATCH":"Flip pairs and match every image before your turns run out.",
+        "☄️  ASTEROIDS":"Blast incoming rocks and survive the meteor field.",
+        "🧩  TETRIS":"Drop blocks, fill lines, and keep the board from overflowing.",
+        "👾  SPACE INVADERS":"Blast the alien swarm and protect Earth from invasion.",
+        "🐤  FLAPPY BIRD":"Thread through the pipes and keep the little bird flying.",
+        "🗼  STACK TOWER":"Balance and stack blocks higher without losing the tower.",
+        "🎯  BUBBLE SHOOTER":"Aim carefully, pop groups, and clear the board.",
+        "🍉  FRUIT SLICE":"Slice every fruit in sight while avoiding the hazards.",
+        "💎  JEWEL SWAP":"Match colorful gems to create combos and clear the board.",
+        "🏓  PONG":"Outplay your rival in a fast one-on-one rally duel.",
+        "❌  TIC TAC TOE":"Claim three in a row and beat the other player on the grid.",
+        "🕹️  2P DUEL":"Battle head-to-head in a speed test of movement and timing.",
+        "⚔️  BRAWL BOX":"Fight for control in a close-up arena duel to five points.",
+        "🎯  TARGET BATTLE":"Hit the right targets, switch turns, and beat the other player first.",
+        "🛡️  SHIELD RACE":"Race across the lane and outlast your opponent in the sprint.",
+        "⚡  PULSE TAP":"Tap the glowing target as fast as you can and keep the streak alive.",
+        "🛰️  ORBIT DODGE":"Weave through moving obstacles while staying in the safe path.",
+        "🎲  GRID FLIP":"Flip the board and chain your moves to outscore your rival.",
+        "🌠  STAR DASH":"Move through space and keep your ship alive while collecting momentum.",
+        "🎵  BEAT POP":"Pop the rhythm targets while the pace keeps climbing.",
+        "🔥  FLARE RUN":"Stay moving, dodge the flames, and keep your score climbing.",
+    };
 
     const GAME_LIST=[
         ["🌊  WAVE PRO","#00a8cc",startWavePro],
@@ -563,21 +634,21 @@ function showMainMenu(){
         makeButton(label,color,function(){
             menu.remove();
             fn();
-        },singlePlayerGrid);
+        },singlePlayerGrid,GAME_DETAILS[label]);
     }
 
     for(const [label,color,fn] of MULTIPLAYER_GAMES){
         makeButton(label,color,function(){
             menu.remove();
             fn();
-        },multiplayerGrid);
+        },multiplayerGrid,GAME_DETAILS[label]);
     }
 
     for(const [label,color,fn] of QUICK_EXTRA_GAMES){
         makeButton(label,color,function(){
             menu.remove();
             fn();
-        },singlePlayerGrid);
+        },singlePlayerGrid,GAME_DETAILS[label]);
     }
 
     document.body.appendChild(menu);
