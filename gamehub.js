@@ -274,6 +274,26 @@ function showMainMenu(){
 
     menu.className="game-hub-menu";
 
+    const glowA=document.createElement("div");
+    const glowB=document.createElement("div");
+    const glowC=document.createElement("div");
+
+    [glowA,glowB,glowC].forEach((glow,i)=>{
+        Object.assign(glow.style,{
+            position:"absolute",
+            borderRadius:"50%",
+            filter:"blur(50px)",
+            opacity:"0.38",
+            pointerEvents:"none",
+            animation: i===0 ? "menuFloat 12s ease-in-out infinite" : i===1 ? "menuFloat 16s ease-in-out infinite reverse" : "menuFloat 18s ease-in-out infinite"
+        });
+        menu.appendChild(glow);
+    });
+
+    glowA.style.width="320px"; glowA.style.height="320px"; glowA.style.left="7%"; glowA.style.top="10%"; glowA.style.background="rgba(31,165,255,0.35)";
+    glowB.style.width="320px"; glowB.style.height="320px"; glowB.style.right="8%"; glowB.style.top="18%"; glowB.style.background="rgba(167,95,255,0.3)";
+    glowC.style.width="420px"; glowC.style.height="420px"; glowC.style.left="50%"; glowC.style.bottom="0"; glowC.style.transform="translateX(-50%)"; glowC.style.background="rgba(34,197,94,0.18)";
+
     Object.assign(menu.style,{
         position:"fixed",
         inset:"0",
@@ -289,8 +309,26 @@ function showMainMenu(){
         userSelect:"none",
         WebkitUserSelect:"none",
         overflow:"auto",
-        padding:"20px 0"
+        padding:"20px 0",
+        position:"relative"
     });
+
+    const menuStyle=document.createElement("style");
+    menuStyle.textContent=`@keyframes menuFloat { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(0,-12px,0) scale(1.08); } }`;
+    menu.appendChild(menuStyle);
+
+    const content=document.createElement("div");
+    Object.assign(content.style,{
+        position:"relative",
+        zIndex:"1",
+        display:"flex",
+        flexDirection:"column",
+        alignItems:"center",
+        justifyContent:"center",
+        width:"100%"
+    });
+
+    menu.appendChild(content);
 
     const title=document.createElement("div");
 
@@ -322,7 +360,7 @@ function showMainMenu(){
         textShadow:"0 1px 8px #000"
     });
 
-    menu.appendChild(subtitle);
+    content.appendChild(subtitle);
 
     const announcement=document.createElement("div");
     announcement.className="game-hub-announcement";
@@ -360,7 +398,7 @@ function showMainMenu(){
 
     announcement.appendChild(announcementTitle);
     announcement.appendChild(announcementText);
-    menu.appendChild(announcement);
+    content.appendChild(announcement);
 
     const grid=document.createElement("div");
 
@@ -376,7 +414,7 @@ function showMainMenu(){
         boxSizing:"border-box"
     });
 
-    menu.appendChild(grid);
+    content.appendChild(grid);
 
 
     function makeButton(text,color,callback){
@@ -387,39 +425,48 @@ function showMainMenu(){
 
         Object.assign(b.style,{
             width:"100%",
-            minHeight:"62px",
-            border:"1px solid rgba(255,255,255,.22)",
-            borderRadius:"14px",
+            minHeight:"64px",
+            border:"1px solid rgba(255,255,255,.2)",
+            borderRadius:"16px",
             background:
                 "linear-gradient(135deg,"+
                 color+
-                " 0%,rgba(0,0,0,.35) 100%)",
+                " 0%,rgba(24,28,38,.90) 100%)",
             color:"#fff",
             fontSize:"17px",
             fontWeight:"bold",
             cursor:"pointer",
             boxShadow:
-                "0 0 14px "+color+
-                ", 0 8px 25px rgba(0,0,0,.45),"+
-                "inset 0 1px 0 rgba(255,255,255,.3),"+
-                "inset 0 -8px 15px rgba(0,0,0,.18)",
-            transition:"transform .1s,filter .1s",
-            touchAction:"manipulation"
+                "0 0 20px rgba(255,255,255,.08), 0 10px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.28)",
+            transition:"transform .12s ease, filter .12s ease, box-shadow .12s ease",
+            touchAction:"manipulation",
+            letterSpacing:"0.4px"
         });
 
         b.onpointerdown=function(){
-            b.style.transform="scale(.96)";
-            b.style.filter="brightness(1.2)";
+            b.style.transform="scale(.97)";
+            b.style.filter="brightness(1.18)";
+            b.style.boxShadow="0 0 26px rgba(255,255,255,.18), 0 8px 22px rgba(0,0,0,.30)";
         };
 
         b.onpointerup=function(){
             b.style.transform="scale(1)";
             b.style.filter="brightness(1)";
+            b.style.boxShadow="0 0 20px rgba(255,255,255,.08), 0 10px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.28)";
         };
 
         b.onpointercancel=function(){
             b.style.transform="scale(1)";
             b.style.filter="brightness(1)";
+            b.style.boxShadow="0 0 20px rgba(255,255,255,.08), 0 10px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.28)";
+        };
+
+        b.onmouseenter=function(){
+            b.style.transform="translateY(-2px)";
+        };
+
+        b.onmouseleave=function(){
+            b.style.transform="translateY(0)";
         };
 
         b.onclick=callback;
