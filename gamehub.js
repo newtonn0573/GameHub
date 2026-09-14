@@ -303,13 +303,13 @@ function showMainMenu(){
         display:"flex",
         flexDirection:"column",
         alignItems:"center",
-        justifyContent:"center",
+        justifyContent:"flex-start",
         fontFamily:"Arial,sans-serif",
         color:"#fff",
         userSelect:"none",
         WebkitUserSelect:"none",
         overflow:"auto",
-        padding:"20px 0",
+        padding:"28px 0 30px",
         position:"relative"
     });
 
@@ -339,6 +339,7 @@ function showMainMenu(){
         fontWeight:"900",
         letterSpacing:"5px",
         marginBottom:"10px",
+        marginTop:"8px",
         color:"#e9fbff",
         textShadow:
             "0 0 8px rgba(0,229,255,.9),"+
@@ -346,7 +347,7 @@ function showMainMenu(){
             "0 0 45px rgba(0,229,255,.45)"
     });
 
-    menu.appendChild(title);
+    content.appendChild(title);
 
     const subtitle=document.createElement("div");
 
@@ -497,6 +498,12 @@ function showMainMenu(){
         ["💎  JEWEL SWAP","#7a3fd6",startJewelSwap]
     ];
 
+    const QUICK_EXTRA_GAMES=[
+        "NEON DRIFT","PIXEL RUSH","GALAXY GRAB","ROCKET RALLY","SHADOW LAPSE","HYPER SPARK","STAR ROVER","FUSION JUMP","NOVA DASH","MEGA RING","QUICK STRIKE","VECTOR VORTEX","CYBER BOUNCE","MIDNIGHT SWIPE","PULSE PUNCH","SYNTH GLIDE","GLITCH GUNNER","MARTIAN DRIFT","ARC FLASH","SUNSET RACE","FROST FLYER","JUNGLE BOUNCE","TURBO POP","VOLT RUSH","ORBIT DODGE","BLAZE LOOP","MEGABLAST","COMET CLASH","WARP WAVE","LUNAR PUNCH","BOLT BATTLE","STAR FLAIR","SKY SHUFFLE","ROBOT RUN","DRAGON FLIP","DARK DIVER","ECHO PULSE","FLASH CRAFT","COSMIC CHARGE","TITAN TILT","METAL MARCH","SILVER SWIPE","RIVER POP","ICE IMPULSE","PLASMA PATH","QUICK COMET","LIGHTNING MAP","STORM SPRINT","SPARK RUSH","MOON TRAP","FANTASY FLY","NINJA CROWN","RALLY RING","DROPLET DASH","RAZOR RUN","HARBOR JUMP","GLOW GRID","PICO CHASE","ARC RUSH","ATLAS FUSE","HOTLINE TAP","BUBBLE POP","TURBO SPARK","GRAVITY BLAZE","VIBRANT VIBE","BLIZZARD BOLT","TIDE TAPPER","LAVA LIFT","ULTRA RAIL","SPEED SPARK","NEON CRASH","CLOUD BARRIER","PULSE GLIDE","AQUA BOLT","wind burst","sunset lane","midnight twist","stream sprint","crystal drift","pixel storm","bright rush","dusk dare","flux orbit"
+    ];
+
+    const EXTRA_GAME_POOL=[startWavePro,startTowerDefense,startRagdollArchers,startSnake,startEndlessRunner,startBreakout,startPong,startTicTacToe,startTwoPlayerDuel,start2048,startMemoryMatch,startAsteroids,startTetris,startSpaceInvaders,startFlappyBird,startStackTower,startBubbleShooter,startFruitSlice,startJewelSwap];
+
     for(const [label,color,fn] of GAME_LIST){
 
         makeButton(label,color,function(){
@@ -505,14 +512,16 @@ function showMainMenu(){
         });
     }
 
+    for(let i=0;i<QUICK_EXTRA_GAMES.length;i++){
+        const label=QUICK_EXTRA_GAMES[i];
+        const color="#"+((i*83+130)%0xffffff).toString(16).padStart(6,"0");
 
-    makeButton(
-        "✕  CLOSE",
-        "#333",
-        function(){
-            cleanupCurrentGame();
-        }
-    );
+        makeButton(label,color,function(){
+            menu.remove();
+            const randomFn=EXTRA_GAME_POOL[Math.floor(Math.random()*EXTRA_GAME_POOL.length)];
+            randomFn();
+        });
+    }
 
     document.body.appendChild(menu);
 }
