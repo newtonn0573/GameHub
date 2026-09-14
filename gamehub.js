@@ -9,6 +9,12 @@ javascript:(function(){
 
 let currentCleanup = null;
 
+const SITE_ANNOUNCEMENT={
+    title:"WELCOME TO GAMEHUB!",
+    text:"Fresh mini-games, local multiplayer battles, and weekly updates are live. Check back often for new challenges and community events.",
+    accent:"#67e8f9"
+};
+
 
 // ============================================================
 // GLOBAL CLEANUP
@@ -312,12 +318,49 @@ function showMainMenu(){
         color:"#9fb4c7",
         fontSize:"14px",
         letterSpacing:"4px",
-        marginBottom:"28px",
+        marginBottom:"18px",
         textShadow:"0 1px 8px #000"
     });
 
     menu.appendChild(subtitle);
 
+    const announcement=document.createElement("div");
+    announcement.className="game-hub-announcement";
+
+    Object.assign(announcement.style,{
+        width:"min(900px, calc(100% - 28px))",
+        marginBottom:"20px",
+        borderRadius:"18px",
+        background:"linear-gradient(135deg,rgba(15,25,44,.96),rgba(10,17,26,.9))",
+        border:"1px solid rgba(255,255,255,.18)",
+        padding:"16px 18px",
+        boxShadow:"0 18px 40px rgba(0,0,0,.38)",
+        color:"#edf7ff",
+        backdropFilter:"blur(8px)"
+    });
+
+    const announcementTitle=document.createElement("div");
+    announcementTitle.textContent=SITE_ANNOUNCEMENT.title;
+    Object.assign(announcementTitle.style,{
+        fontSize:"15px",
+        fontWeight:"900",
+        letterSpacing:"2px",
+        color:SITE_ANNOUNCEMENT.accent,
+        marginBottom:"8px"
+    });
+
+    const announcementText=document.createElement("div");
+    announcementText.textContent=SITE_ANNOUNCEMENT.text;
+    Object.assign(announcementText.style,{
+        fontSize:"13px",
+        lineHeight:"1.5",
+        color:"#dfeaf7",
+        opacity:"0.95"
+    });
+
+    announcement.appendChild(announcementTitle);
+    announcement.appendChild(announcementText);
+    menu.appendChild(announcement);
 
     const grid=document.createElement("div");
 
@@ -393,6 +436,8 @@ function showMainMenu(){
         ["🏃  ENDLESS RUNNER","#d35400",startEndlessRunner],
         ["🧱  BREAKOUT","#c0392b",startBreakout],
         ["🏓  PONG","#16a085",startPong],
+        ["❌  TIC TAC TOE","#45b5ff",startTicTacToe],
+        ["🕹️  2P DUEL","#ff5aa0",startTwoPlayerDuel],
         ["🔢  2048","#f39c12",start2048],
         ["🧠  MEMORY MATCH","#2980b9",startMemoryMatch],
         ["☄️  ASTEROIDS","#34495e",startAsteroids],
@@ -1435,6 +1480,7 @@ function startTowerDefense(){
     canvas.className="td-overlay-canvas";
 
     const ctx=canvas.getContext("2d");
+    let gameSpeedMultiplier=1;
 
 
     function resize(){
@@ -1510,6 +1556,35 @@ function startTowerDefense(){
     });
 
     document.body.appendChild(pauseBtn);
+
+    const speedBtn=document.createElement("button");
+    speedBtn.className="td-speed";
+    speedBtn.textContent="1x Speed";
+
+    Object.assign(speedBtn.style,{
+        position:"fixed",
+        bottom:"15px",
+        right:"260px",
+        zIndex:"100002",
+        background:"linear-gradient(135deg,rgba(20,40,30,.96),rgba(0,0,0,.92))",
+        color:"#fff",
+        border:"1px solid rgba(255,255,255,.55)",
+        padding:"10px 16px",
+        borderRadius:"10px",
+        cursor:"pointer",
+        fontWeight:"bold",
+        fontSize:"14px",
+        boxShadow:
+            "0 0 16px rgba(80,255,150,.12),"+
+            "0 6px 20px rgba(0,0,0,.5)"
+    });
+
+    speedBtn.onclick=function(){
+        gameSpeedMultiplier=gameSpeedMultiplier===1?2:1;
+        speedBtn.textContent=gameSpeedMultiplier+"x Speed";
+    };
+
+    document.body.appendChild(speedBtn);
 
 
     const shop=document.createElement("div");
@@ -7317,7 +7392,44 @@ function startMemoryMatch(){
     const ctx=canvas.getContext("2d");
 
     const COLS=4,ROWS=4;
-    const ICONS=["🍎","🍋","🍇","🍓","🍑","🍒","🍉","🥝"];
+    const MEMORY_ART=[
+        {emoji:"🍎",bg:"#ff657a",accent:"#ffd5dd"},
+        {emoji:"🍋",bg:"#ffd449",accent:"#fff4b8"},
+        {emoji:"🍇",bg:"#8e5cf6",accent:"#e9d7ff"},
+        {emoji:"🍓",bg:"#ff5a7a",accent:"#ffd4de"},
+        {emoji:"🍑",bg:"#ff9a5b",accent:"#ffe0c9"},
+        {emoji:"🍒",bg:"#eb4d6a",accent:"#ffd5de"},
+        {emoji:"🍉",bg:"#4bd97b",accent:"#dfffe8"},
+        {emoji:"🥝",bg:"#7fdc7a",accent:"#eaffdc"}
+    ];
+
+    function drawMemoryArt(ctx,x,y,size,art){
+        const pad=size*0.12;
+        const cx=x+size/2;
+        const cy=y+size/2;
+
+        ctx.save();
+        ctx.fillStyle=art.bg;
+        ctx.shadowColor="rgba(0,0,0,.2)";
+        ctx.shadowBlur=12;
+        roundRectHub(ctx,x+pad/2,y+pad/2,size-pad,size-pad,14);
+        ctx.fill();
+        ctx.shadowBlur=0;
+
+        ctx.fillStyle=art.accent;
+        ctx.globalAlpha=.22;
+        ctx.beginPath();
+        ctx.arc(cx,cy,size*0.32,0,Math.PI*2);
+        ctx.fill();
+
+        ctx.globalAlpha=1;
+        ctx.fillStyle="#fff";
+        ctx.font="900 "+(size*0.4)+"px Arial";
+        ctx.textAlign="center";
+        ctx.textBaseline="middle";
+        ctx.fillText(art.emoji,cx,cy+size*0.03);
+        ctx.restore();
+    }
 
     let cellSize,gridX,gridY,gridW,gridH;
 
@@ -7367,7 +7479,8 @@ function startMemoryMatch(){
 
         const icons=[];
         for(let i=0;i<(COLS*ROWS)/2;i++){
-            icons.push(ICONS[i%ICONS.length],ICONS[i%ICONS.length]);
+            const art=MEMORY_ART[i%MEMORY_ART.length];
+            icons.push(art,art);
         }
 
         for(let i=icons.length-1;i>0;i--){
@@ -7380,7 +7493,7 @@ function startMemoryMatch(){
         for(let r=0;r<ROWS;r++){
             for(let c=0;c<COLS;c++){
                 cards.push({
-                    r,c,icon:icons[idx++],
+                    r,c,art:icons[idx++],
                     flipped:false,matched:false,flipT:0
                 });
             }
@@ -7432,7 +7545,7 @@ function startMemoryMatch(){
 
             setTimeout(function(){
 
-                if(firstPick.icon===secondPick.icon){
+                if(firstPick.art.emoji===secondPick.art.emoji){
 
                     firstPick.matched=true;
                     secondPick.matched=true;
@@ -7500,10 +7613,7 @@ function startMemoryMatch(){
                 ctx.fill();
 
                 ctx.shadowBlur=0;
-                ctx.font=(w*.5)+"px Arial";
-                ctx.textAlign="center";
-                ctx.textBaseline="middle";
-                ctx.fillText(card.icon,x+w/2,y+w/2+2);
+                drawMemoryArt(ctx,x+7,y+7,w-14,card.art);
 
             }else{
 
@@ -11169,6 +11279,424 @@ function startJewelSwap(){
     animationId=requestAnimationFrame(loop);
 }
 
+
+// ============================================================
+// TIC TAC TOE
+// ============================================================
+
+function startTicTacToe(){
+
+    document.body.style.userSelect="none";
+    document.body.style.webkitUserSelect="none";
+    document.body.style.touchAction="none";
+
+    const canvas=document.createElement("canvas");
+    canvas.className="ttt-canvas";
+    const ctx=canvas.getContext("2d");
+
+    function resize(){
+        canvas.width=window.innerWidth;
+        canvas.height=window.innerHeight;
+    }
+    resize();
+
+    Object.assign(canvas.style,{
+        position:"fixed",inset:"0",width:"100%",height:"100%",
+        zIndex:"100000",background:"linear-gradient(160deg,#0f172a,#111827)",
+        touchAction:"none",userSelect:"none",WebkitTapHighlightColor:"transparent"
+    });
+    document.body.appendChild(canvas);
+
+    const ui=document.createElement("div");
+    ui.className="ttt-ui";
+    Object.assign(ui.style,{
+        position:"fixed",top:"12px",left:"12px",zIndex:"100002",
+        color:"#fff",fontFamily:"Arial,sans-serif",
+        background:"linear-gradient(145deg,rgba(20,30,50,.9),rgba(0,0,0,.7))",
+        border:"1px solid rgba(255,255,255,.2)",borderRadius:"12px",
+        padding:"9px 14px",pointerEvents:"none",fontWeight:"bold",fontSize:"15px",
+        boxShadow:"0 8px 24px rgba(0,0,0,.35)"
+    });
+    document.body.appendChild(ui);
+
+    const back=makeBackButton("ttt-back");
+
+    const board=[[null,null,null],[null,null,null],[null,null,null]];
+    let current="X";
+    let winner=null;
+    let moveCount=0;
+
+    function lineWin(a,b,c){
+        const p=board[a[0]][a[1]];
+        if(p && p===board[b[0]][b[1]] && p===board[c[0]][c[1]]) return p;
+        return null;
+    }
+
+    function checkWinner(){
+        const wins=[
+            [[0,0],[0,1],[0,2]],[[1,0],[1,1],[1,2]],[[2,0],[2,1],[2,2]],
+            [[0,0],[1,0],[2,0]],[[0,1],[1,1],[2,1]],[[0,2],[1,2],[2,2]],
+            [[0,0],[1,1],[2,2]],[[0,2],[1,1],[2,0]]
+        ];
+
+        for(const w of wins){
+            const result=lineWin(w[0],w[1],w[2]);
+            if(result){ return result; }
+        }
+        return null;
+    }
+
+    function resetBoard(){
+        for(let r=0;r<3;r++){
+            for(let c=0;c<3;c++) board[r][c]=null;
+        }
+        current="X";
+        winner=null;
+        moveCount=0;
+    }
+
+    function cellAt(x,y){
+        const size=Math.min(canvas.width,canvas.height)*.72;
+        const offsetX=(canvas.width-size)/2;
+        const offsetY=(canvas.height-size)/2+30;
+        const cell=size/3;
+
+        if(x<offsetX||y<offsetY||x>offsetX+size||y>offsetY+size)return null;
+
+        const row=Math.floor((y-offsetY)/cell);
+        const col=Math.floor((x-offsetX)/cell);
+
+        if(row<0||row>2||col<0||col>2)return null;
+        return {row,col};
+    }
+
+    function pointerDown(e){
+        const rect=canvas.getBoundingClientRect();
+        const x=e.clientX-rect.left;
+        const y=e.clientY-rect.top;
+
+        if(winner) {
+            resetBoard();
+            return;
+        }
+
+        const pos=cellAt(x,y);
+        if(!pos) return;
+        const {row,col}=pos;
+        if(board[row][col]) return;
+
+        board[row][col]=current;
+        moveCount++;
+
+        const result=checkWinner();
+        if(result){
+            winner=result;
+        }else if(moveCount===9){
+            winner="draw";
+        }else{
+            current=current=="X"?"O":"X";
+        }
+    }
+
+    function draw(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        const bg=ctx.createLinearGradient(0,0,0,canvas.height);
+        bg.addColorStop(0,"#0f172a");
+        bg.addColorStop(1,"#111827");
+        ctx.fillStyle=bg;
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+
+        const size=Math.min(canvas.width,canvas.height)*.72;
+        const x=(canvas.width-size)/2;
+        const y=(canvas.height-size)/2+30;
+        const cell=size/3;
+
+        ctx.strokeStyle="rgba(255,255,255,.2)";
+        ctx.lineWidth=4;
+        for(let i=1;i<3;i++){
+            const lineX=x+i*cell;
+            const lineY=y+i*cell;
+            ctx.beginPath();
+            ctx.moveTo(lineX, y);
+            ctx.lineTo(lineX, y+size);
+            ctx.moveTo(x, lineY);
+            ctx.lineTo(x+size, lineY);
+            ctx.stroke();
+        }
+
+        ctx.font="900 "+(cell*.52)+"px Arial";
+        ctx.textAlign="center";
+        ctx.textBaseline="middle";
+
+        for(let r=0;r<3;r++){
+            for(let c=0;c<3;c++){
+                const val=board[r][c];
+                if(!val) continue;
+                const px=x+c*cell+cell/2;
+                const py=y+r*cell+cell/2;
+                ctx.fillStyle=val=="X"?"#67e8f9":"#fda4af";
+                ctx.fillText(val,px,py+2);
+            }
+        }
+
+        if(winner){
+            ctx.fillStyle="rgba(0,0,0,.65)";
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle="#fff";
+            ctx.font="900 42px Arial";
+            ctx.textAlign="center";
+            ctx.fillText(winner=="draw"?"DRAW!":winner+" WINS!",canvas.width/2,canvas.height/2-20);
+            ctx.font="bold 18px Arial";
+            ctx.fillStyle="#cfe4ff";
+            ctx.fillText("Tap to play again",canvas.width/2,canvas.height/2+22);
+        }
+
+        ui.innerHTML = winner==="draw" ? "❌ TIC TAC TOE — DRAW" : winner ? "❌ TIC TAC TOE — "+winner+" wins" : "❌ TIC TAC TOE — Turn: "+current;
+    }
+
+    canvas.addEventListener("pointerdown",pointerDown,{passive:false});
+
+    function loop(){
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    back.onclick=function(){
+        cancelAnimationFrame(animationId);
+        showMainMenu();
+    };
+
+    let animationId=requestAnimationFrame(loop);
+
+    function resizeHandler(){ resize(); }
+    window.addEventListener("resize",resizeHandler);
+
+    currentCleanup=function(){
+        cancelAnimationFrame(animationId);
+        window.removeEventListener("resize",resizeHandler);
+        canvas.removeEventListener("pointerdown",pointerDown);
+        canvas.remove();
+        ui.remove();
+        back.remove();
+    };
+}
+
+
+// ============================================================
+// 2 PLAYER DUEL
+// ============================================================
+
+function startTwoPlayerDuel(){
+
+    document.body.style.userSelect="none";
+    document.body.style.webkitUserSelect="none";
+    document.body.style.touchAction="none";
+
+    const canvas=document.createElement("canvas");
+    canvas.className="duel-canvas";
+    const ctx=canvas.getContext("2d");
+
+    function resize(){
+        canvas.width=window.innerWidth;
+        canvas.height=window.innerHeight;
+    }
+    resize();
+
+    Object.assign(canvas.style,{
+        position:"fixed",inset:"0",width:"100%",height:"100%",
+        zIndex:"100000",background:"linear-gradient(180deg,#090b1a,#100d1e)",
+        touchAction:"none",userSelect:"none"
+    });
+    document.body.appendChild(canvas);
+
+    const ui=document.createElement("div");
+    ui.className="duel-ui";
+    Object.assign(ui.style,{
+        position:"fixed",top:"12px",left:"12px",zIndex:"100002",
+        color:"#fff",fontFamily:"Arial,sans-serif",
+        background:"linear-gradient(145deg,rgba(30,20,45,.88),rgba(0,0,0,.72))",
+        border:"1px solid rgba(255,255,255,.25)",borderRadius:"12px",
+        padding:"9px 14px",pointerEvents:"none",fontWeight:"bold",fontSize:"15px",
+        boxShadow:"0 8px 24px rgba(0,0,0,.35)"
+    });
+    document.body.appendChild(ui);
+
+    const back=makeBackButton("duel-back");
+
+    const player1={x:90,y:canvas.height/2-28,w:18,h:90,up:false,down:false,color:"#67e8f9",score:0};
+    const player2={x:canvas.width-110,y:canvas.height/2-28,w:18,h:90,up:false,down:false,color:"#fda4af",score:0};
+    const ball={x:canvas.width/2,y:canvas.height/2,r:10,vx:420,vy:220};
+
+    let animationId;
+    let lastTime=performance.now();
+    let winner=null;
+
+    function resetBall(direction){
+        ball.x=canvas.width/2;
+        ball.y=canvas.height/2;
+        const angle=(Math.random()*1.4)-0.7;
+        ball.vx=(direction||1)*Math.max(380,420+Math.random()*80);
+        ball.vy=Math.sin(angle)*320;
+    }
+
+    function resetMatch(){
+        player1.y=canvas.height/2-45;
+        player2.y=canvas.height/2-45;
+        player1.score=0;
+        player2.score=0;
+        winner=null;
+        resetBall(Math.random()>0.5?1:-1);
+    }
+
+    function keyDown(e){
+        if(e.key==="w"||e.key==="W") player1.up=true;
+        if(e.key==="s"||e.key==="S") player1.down=true;
+        if(e.key==="ArrowUp") player2.up=true;
+        if(e.key==="ArrowDown") player2.down=true;
+    }
+
+    function keyUp(e){
+        if(e.key==="w"||e.key==="W") player1.up=false;
+        if(e.key==="s"||e.key==="S") player1.down=false;
+        if(e.key==="ArrowUp") player2.up=false;
+        if(e.key==="ArrowDown") player2.down=false;
+    }
+
+    function update(dt){
+        if(winner) return;
+
+        const moveSpeed=440*dt;
+        if(player1.up) player1.y-=moveSpeed;
+        if(player1.down) player1.y+=moveSpeed;
+        if(player2.up) player2.y-=moveSpeed;
+        if(player2.down) player2.y+=moveSpeed;
+
+        player1.y=Math.max(20,Math.min(canvas.height-player1.h-20,player1.y));
+        player2.y=Math.max(20,Math.min(canvas.height-player2.h-20,player2.y));
+
+        ball.x+=ball.vx*dt;
+        ball.y+=ball.vy*dt;
+
+        if(ball.y-ball.r<0 || ball.y+ball.r>canvas.height){
+            ball.vy*=-1;
+            ball.y=Math.max(ball.r,Math.min(canvas.height-ball.r,ball.y));
+        }
+
+        if(ball.x-ball.r<player1.x+player1.w && ball.x-ball.r>player1.x && ball.y>player1.y && ball.y<player1.y+player1.h){
+            ball.x=player1.x+player1.w+ball.r;
+            ball.vx=Math.abs(ball.vx)+40;
+            ball.vy+=(ball.y-(player1.y+player1.h/2))*2.5;
+        }
+
+        if(ball.x+ball.r>player2.x && ball.x-ball.r<player2.x+player2.w && ball.y>player2.y && ball.y<player2.y+player2.h){
+            ball.x=player2.x-ball.r;
+            ball.vx=-(Math.abs(ball.vx)+40);
+            ball.vy+=(ball.y-(player2.y+player2.h/2))*2.5;
+        }
+
+        if(ball.x < -20){
+            player2.score++;
+            if(player2.score>=5){ winner="Player 2"; }
+            else resetBall(1);
+        }
+
+        if(ball.x > canvas.width+20){
+            player1.score++;
+            if(player1.score>=5){ winner="Player 1"; }
+            else resetBall(-1);
+        }
+    }
+
+    function draw(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        const g=ctx.createLinearGradient(0,0,0,canvas.height);
+        g.addColorStop(0,"#080c18");
+        g.addColorStop(1,"#150b1d");
+        ctx.fillStyle=g;
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+
+        ctx.strokeStyle="rgba(255,255,255,.15)";
+        ctx.lineWidth=3;
+        ctx.setLineDash([14,12]);
+        ctx.beginPath();
+        ctx.moveTo(canvas.width/2,0);
+        ctx.lineTo(canvas.width/2,canvas.height);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle=player1.color;
+        roundRectHub(ctx,player1.x,player1.y,player1.w,player1.h,8);
+        ctx.fill();
+
+        ctx.fillStyle=player2.color;
+        roundRectHub(ctx,player2.x,player2.y,player2.w,player2.h,8);
+        ctx.fill();
+
+        ctx.fillStyle="#fff";
+        ctx.beginPath();
+        ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
+        ctx.fill();
+
+        ctx.textAlign="center";
+        ctx.font="900 52px Arial";
+        ctx.fillStyle="rgba(255,255,255,.75)";
+        ctx.fillText(player1.score,canvas.width/2-90,72);
+        ctx.fillText(player2.score,canvas.width/2+90,72);
+
+        if(winner){
+            ctx.fillStyle="rgba(0,0,0,.7)";
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle="#fff";
+            ctx.font="900 42px Arial";
+            ctx.fillText(winner+" WINS!",canvas.width/2,canvas.height/2-20);
+            ctx.font="bold 18px Arial";
+            ctx.fillStyle="#d9e6ff";
+            ctx.fillText("Tap to rematch",canvas.width/2,canvas.height/2+18);
+        }
+
+        ui.innerHTML="🕹️ 2P DUEL — First to 5";
+    }
+
+    function loop(ts){
+        const dt=Math.min((ts-lastTime)/1000,0.03);
+        lastTime=ts;
+        update(dt);
+        draw();
+        animationId=requestAnimationFrame(loop);
+    }
+
+    function pointerDown(){
+        if(winner){
+            resetMatch();
+        }
+    }
+
+    canvas.addEventListener("pointerdown",pointerDown,{passive:false});
+    window.addEventListener("keydown",keyDown);
+    window.addEventListener("keyup",keyUp);
+
+    back.onclick=function(){
+        cancelAnimationFrame(animationId);
+        showMainMenu();
+    };
+
+    function resizeHandler(){ resize(); }
+    window.addEventListener("resize",resizeHandler);
+
+    currentCleanup=function(){
+        cancelAnimationFrame(animationId);
+        window.removeEventListener("resize",resizeHandler);
+        window.removeEventListener("keydown",keyDown);
+        window.removeEventListener("keyup",keyUp);
+        canvas.removeEventListener("pointerdown",pointerDown);
+        canvas.remove();
+        ui.remove();
+        back.remove();
+    };
+
+    resetMatch();
+    animationId=requestAnimationFrame(loop);
+}
 
 // ============================================================
 // START HUB
