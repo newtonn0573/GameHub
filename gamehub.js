@@ -10,8 +10,8 @@ javascript:(function(){
 let currentCleanup = null;
 
 const SITE_ANNOUNCEMENT={
-    title:"WELCOME TO GAMEHUB!",
-    text:"Fresh mini-games, local multiplayer battles, and weekly updates are live. Check back often for new challenges and community events.",
+    title:"hi guys",
+    text:"this wednsday, meet me at the front gate, I am buying 20 people ice cream!",
     accent:"#67e8f9"
 };
 
