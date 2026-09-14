@@ -308,10 +308,15 @@ function showMainMenu(){
         color:"#fff",
         userSelect:"none",
         WebkitUserSelect:"none",
-        overflow:"auto",
+        overflowY:"auto",
+        overflowX:"hidden",
         padding:"28px 0 30px",
-        position:"relative"
+        position:"relative",
+        overscrollBehavior:"contain"
     });
+
+    document.body.style.overflow="auto";
+    document.documentElement.style.overflow="auto";
 
     const menuStyle=document.createElement("style");
     menuStyle.textContent=`@keyframes menuFloat { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(0,-12px,0) scale(1.08); } }`;
