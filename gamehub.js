@@ -545,16 +545,19 @@ function showMainMenu(){
         ["🏓  PONG","#16a085",startPong],
         ["❌  TIC TAC TOE","#45b5ff",startTicTacToe],
         ["🕹️  2P DUEL","#ff5aa0",startTwoPlayerDuel],
-        ["⚔️  BRAWL BOX","#6d28d9",startTwoPlayerDuel],
-        ["🎯  TARGET BATTLE","#f59e0b",startTwoPlayerDuel],
-        ["🛡️  SHIELD RACE","#10b981",startTwoPlayerDuel]
+        ["⚔️  BRAWL BOX","#6d28d9",startBrawlBox],
+        ["🎯  TARGET BATTLE","#f59e0b",startTargetBattle],
+        ["🛡️  SHIELD RACE","#10b981",startShieldRace]
     ];
 
     const QUICK_EXTRA_GAMES=[
-        "NEON DRIFT","PIXEL RUSH","GALAXY GRAB","ROCKET RALLY","SHADOW LAPSE","HYPER SPARK","STAR ROVER","FUSION JUMP","NOVA DASH","MEGA RING","QUICK STRIKE","VECTOR VORTEX","CYBER BOUNCE","MIDNIGHT SWIPE","PULSE PUNCH","SYNTH GLIDE","GLITCH GUNNER","MARTIAN DRIFT","ARC FLASH","SUNSET RACE","FROST FLYER","JUNGLE BOUNCE","TURBO POP","VOLT RUSH","ORBIT DODGE","BLAZE LOOP","MEGABLAST","COMET CLASH","WARP WAVE","LUNAR PUNCH","BOLT BATTLE","STAR FLAIR","SKY SHUFFLE","ROBOT RUN","DRAGON FLIP","DARK DIVER","ECHO PULSE","FLASH CRAFT","COSMIC CHARGE","TITAN TILT","METAL MARCH","SILVER SWIPE","RIVER POP","ICE IMPULSE","PLASMA PATH","QUICK COMET","LIGHTNING MAP","STORM SPRINT","SPARK RUSH","MOON TRAP","FANTASY FLY","NINJA CROWN","RALLY RING","DROPLET DASH","RAZOR RUN","HARBOR JUMP","GLOW GRID","PICO CHASE","ARC RUSH","ATLAS FUSE","HOTLINE TAP","BUBBLE POP","TURBO SPARK","GRAVITY BLAZE","VIBRANT VIBE","BLIZZARD BOLT","TIDE TAPPER","LAVA LIFT","ULTRA RAIL","SPEED SPARK","NEON CRASH","CLOUD BARRIER","PULSE GLIDE","AQUA BOLT","wind burst","sunset lane","midnight twist","stream sprint","crystal drift","pixel storm","bright rush","dusk dare","flux orbit"
+        ["⚡  PULSE TAP","#38bdf8",startPulseTap],
+        ["🛰️  ORBIT DODGE","#a78bfa",startOrbitDodge],
+        ["🎲  GRID FLIP","#f59e0b",startGridFlip],
+        ["🌠  STAR DASH","#f472b6",startStarDash],
+        ["🎵  BEAT POP","#34d399",startBeatPop],
+        ["🔥  FLARE RUN","#fb7185",startFlareRun]
     ];
-
-    const EXTRA_GAME_POOL=[startWavePro,startTowerDefense,startRagdollArchers,startSnake,startEndlessRunner,startBreakout,startPong,startTicTacToe,startTwoPlayerDuel,start2048,startMemoryMatch,startAsteroids,startTetris,startSpaceInvaders,startFlappyBird,startStackTower,startBubbleShooter,startFruitSlice,startJewelSwap];
 
     const singlePlayerGrid=makeSection("SINGLE PLAYER");
     const multiplayerGrid=makeSection("2 PLAYER");
@@ -575,14 +578,10 @@ function showMainMenu(){
         },multiplayerGrid);
     }
 
-    for(let i=0;i<QUICK_EXTRA_GAMES.length;i++){
-        const label=QUICK_EXTRA_GAMES[i];
-        const color="#"+((i*83+130)%0xffffff).toString(16).padStart(6,"0");
-
+    for(const [label,color,fn] of QUICK_EXTRA_GAMES){
         makeButton(label,color,function(){
             menu.remove();
-            const randomFn=EXTRA_GAME_POOL[Math.floor(Math.random()*EXTRA_GAME_POOL.length)];
-            randomFn();
+            fn();
         },singlePlayerGrid);
     }
 
@@ -11815,6 +11814,329 @@ function startTwoPlayerDuel(){
 
     resetMatch();
     animationId=requestAnimationFrame(loop);
+}
+
+// ============================================================
+// BRAWL BOX
+// ============================================================
+
+function startBrawlBox(){
+    document.body.style.userSelect="none";
+    document.body.style.webkitUserSelect="none";
+    document.body.style.touchAction="none";
+
+    const canvas=document.createElement("canvas");
+    const ctx=canvas.getContext("2d");
+    function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+    resize();
+    Object.assign(canvas.style,{position:"fixed",inset:"0",width:"100%",height:"100%",zIndex:"100000",background:"#0f172a",touchAction:"none",userSelect:"none"});
+    document.body.appendChild(canvas);
+
+    const back=makeBackButton("brawl-back");
+    const ui=document.createElement("div");
+    Object.assign(ui.style,{position:"fixed",top:"12px",left:"12px",zIndex:"100002",background:"rgba(15,23,42,.9)",color:"#fff",padding:"8px 12px",borderRadius:"10px",fontFamily:"Arial,sans-serif",fontWeight:"bold",border:"1px solid rgba(255,255,255,.2)"});
+    ui.textContent="⚔️ BRAWL BOX";
+    document.body.appendChild(ui);
+
+    const player={x:80,y:canvas.height/2-55,w:18,h:110,up:false,down:false,score:0,color:"#67e8f9"};
+    const enemy={x:canvas.width-98,y:canvas.height/2-55,w:18,h:110,up:false,down:false,score:0,color:"#fca5a5"};
+    const ball={x:canvas.width/2,y:canvas.height/2,r:12,vx:360,vy:200};
+    let animationId,lastTime=performance.now();
+    let winner=null;
+
+    function keyDown(e){ if(e.key==="w"||e.key==="W") player.up=true; if(e.key==="s"||e.key==="S") player.down=true; if(e.key==="ArrowUp") enemy.up=true; if(e.key==="ArrowDown") enemy.down=true; }
+    function keyUp(e){ if(e.key==="w"||e.key==="W") player.up=false; if(e.key==="s"||e.key==="S") player.down=false; if(e.key==="ArrowUp") enemy.up=false; if(e.key==="ArrowDown") enemy.down=false; }
+
+    function resetBall(dir){ ball.x=canvas.width/2; ball.y=canvas.height/2; ball.vx=(dir||1)*(360+Math.random()*80); ball.vy=(Math.random()*260)-130; }
+
+    function update(dt){
+        if(winner) return;
+        const move=420*dt;
+        if(player.up) player.y-=move; if(player.down) player.y+=move; if(enemy.up) enemy.y-=move; if(enemy.down) enemy.y+=move;
+        player.y=Math.max(20,Math.min(canvas.height-player.h-20,player.y));
+        enemy.y=Math.max(20,Math.min(canvas.height-enemy.h-20,enemy.y));
+
+        ball.x+=ball.vx*dt; ball.y+=ball.vy*dt;
+        if(ball.y-ball.r<0 || ball.y+ball.r>canvas.height){ ball.vy*=-1; }
+
+        if(ball.x-ball.r<player.x+player.w && ball.x-ball.r>player.x && ball.y>player.y && ball.y<player.y+player.h){
+            ball.x=player.x+player.w+ball.r; ball.vx=Math.abs(ball.vx)+40; ball.vy=(ball.y-(player.y+player.h/2))*3.2;
+        }
+        if(ball.x+ball.r>enemy.x && ball.x-ball.r<enemy.x+enemy.w && ball.y>enemy.y && ball.y<enemy.y+enemy.h){
+            ball.x=enemy.x-ball.r; ball.vx=-(Math.abs(ball.vx)+40); ball.vy=(ball.y-(enemy.y+enemy.h/2))*3.2;
+        }
+
+        if(ball.x < -30){ enemy.score++; if(enemy.score>=5) winner="Player 2"; else resetBall(1); }
+        if(ball.x > canvas.width+30){ player.score++; if(player.score>=5) winner="Player 1"; else resetBall(-1); }
+    }
+
+    function draw(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle="#0b1120"; ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.strokeStyle="rgba(255,255,255,.18)"; ctx.setLineDash([14,14]); ctx.beginPath(); ctx.moveTo(canvas.width/2,0); ctx.lineTo(canvas.width/2,canvas.height); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle=player.color; roundRectHub(ctx,player.x,player.y,player.w,player.h,8); ctx.fill();
+        ctx.fillStyle=enemy.color; roundRectHub(ctx,enemy.x,enemy.y,enemy.w,enemy.h,8); ctx.fill();
+        ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2); ctx.fill();
+        ctx.font="900 48px Arial"; ctx.textAlign="center"; ctx.fillStyle="rgba(255,255,255,.8)"; ctx.fillText(player.score,canvas.width/2-90,70); ctx.fillText(enemy.score,canvas.width/2+90,70);
+        if(winner){ ctx.fillStyle="rgba(0,0,0,.7)"; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#fff"; ctx.font="900 42px Arial"; ctx.fillText(winner+" WINS!",canvas.width/2,canvas.height/2-20); ctx.font="bold 18px Arial"; ctx.fillText("Tap to play again",canvas.width/2,canvas.height/2+18); }
+        ui.textContent="⚔️ BRAWL BOX  —  first to 5";
+    }
+
+    function loop(ts){ const dt=Math.min((ts-lastTime)/1000,.03); lastTime=ts; update(dt); draw(); animationId=requestAnimationFrame(loop); }
+    canvas.addEventListener("pointerdown",()=>{ if(winner){ winner=null; player.score=0; enemy.score=0; resetBall(Math.random()>0.5?1:-1); } },{passive:true});
+    window.addEventListener("keydown",keyDown); window.addEventListener("keyup",keyUp);
+    back.onclick=()=>{ cancelAnimationFrame(animationId); showMainMenu(); };
+    resetBall(Math.random()>0.5?1:-1); animationId=requestAnimationFrame(loop);
+    currentCleanup=()=>{ cancelAnimationFrame(animationId); window.removeEventListener("keydown",keyDown); window.removeEventListener("keyup",keyUp); canvas.remove(); back.remove(); ui.remove(); };
+}
+
+// ============================================================
+// TARGET BATTLE
+// ============================================================
+
+function startTargetBattle(){
+    document.body.style.userSelect="none";
+    document.body.style.webkitUserSelect="none";
+    document.body.style.touchAction="none";
+
+    const canvas=document.createElement("canvas");
+    const ctx=canvas.getContext("2d");
+    function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+    resize();
+    Object.assign(canvas.style,{position:"fixed",inset:"0",width:"100%",height:"100%",zIndex:"100000",background:"#160f1f",touchAction:"none",userSelect:"none"});
+    document.body.appendChild(canvas);
+
+    const ui=document.createElement("div");
+    Object.assign(ui.style,{position:"fixed",top:"12px",left:"12px",zIndex:"100002",background:"rgba(22,15,31,.9)",color:"#fff",padding:"8px 12px",borderRadius:"10px",fontFamily:"Arial,sans-serif",fontWeight:"bold",border:"1px solid rgba(255,255,255,.2)"});
+    ui.textContent="🎯 TARGET BATTLE";
+    document.body.appendChild(ui);
+
+    const back=makeBackButton("target-back");
+    let score1=0, score2=0, turn=1, winner=null; const targets=[]; let animationId,lastTime=performance.now();
+
+    function spawnTargets(){
+        targets.length=0;
+        for(let i=0;i<5;i++){
+            targets.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:26+Math.random()*20,team:Math.random()>0.5?1:2,color:Math.random()>0.5?"#f8d076":"#7dd3fc"});
+        }
+    }
+
+    function pointerDown(e){
+        if(winner){ winner=null; score1=0; score2=0; turn=1; spawnTargets(); return; }
+        const rect=canvas.getBoundingClientRect();
+        const x=e.clientX-rect.left; const y=e.clientY-rect.top;
+        for(const t of targets){
+            const d=Math.hypot(x-t.x,y-t.y);
+            if(d < t.r){
+                if(t.team===turn){
+                    if(turn===1) score1++; else score2++;
+                    if(score1>=5 || score2>=5) winner=score1>score2 ? "Player 1" : "Player 2";
+                    else turn=turn===1?2:1;
+                }
+                spawnTargets();
+                return;
+            }
+        }
+    }
+
+    function draw(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle="#160f1f"; ctx.fillRect(0,0,canvas.width,canvas.height);
+        for(const t of targets){
+            ctx.fillStyle=t.color; ctx.beginPath(); ctx.arc(t.x,t.y,t.r,0,Math.PI*2); ctx.fill();
+            ctx.strokeStyle="rgba(255,255,255,.45)"; ctx.beginPath(); ctx.arc(t.x,t.y,t.r*0.55,0,Math.PI*2); ctx.stroke();
+        }
+        ctx.fillStyle="#fff"; ctx.font="900 44px Arial"; ctx.textAlign="center"; ctx.fillText(score1,canvas.width/2-100,70); ctx.fillText(score2,canvas.width/2+100,70);
+        ctx.font="bold 18px Arial"; ctx.fillText("Player "+turn+" turn",canvas.width/2,canvas.height-20);
+        if(winner){ ctx.fillStyle="rgba(0,0,0,.7)"; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#fff"; ctx.font="900 42px Arial"; ctx.fillText(winner+" WINS!",canvas.width/2,canvas.height/2-20); ctx.font="bold 18px Arial"; ctx.fillText("Tap to reset",canvas.width/2,canvas.height/2+20); }
+    }
+
+    function loop(ts){ const dt=Math.min((ts-lastTime)/1000,.03); lastTime=ts; draw(); animationId=requestAnimationFrame(loop); }
+    canvas.addEventListener("pointerdown",pointerDown,{passive:true});
+    back.onclick=()=>{ cancelAnimationFrame(animationId); showMainMenu(); };
+    spawnTargets(); animationId=requestAnimationFrame(loop);
+    currentCleanup=()=>{ cancelAnimationFrame(animationId); canvas.remove(); back.remove(); ui.remove(); };
+}
+
+// ============================================================
+// SHIELD RACE
+// ============================================================
+
+function startShieldRace(){
+    document.body.style.userSelect="none";
+    document.body.style.webkitUserSelect="none";
+    document.body.style.touchAction="none";
+
+    const canvas=document.createElement("canvas");
+    const ctx=canvas.getContext("2d");
+    function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+    resize();
+    Object.assign(canvas.style,{position:"fixed",inset:"0",width:"100%",height:"100%",zIndex:"100000",background:"#061b12",touchAction:"none",userSelect:"none"});
+    document.body.appendChild(canvas);
+
+    const back=makeBackButton("shield-back");
+    const ui=document.createElement("div");
+    Object.assign(ui.style,{position:"fixed",top:"12px",left:"12px",zIndex:"100002",background:"rgba(6,27,18,.9)",color:"#fff",padding:"8px 12px",borderRadius:"10px",fontFamily:"Arial,sans-serif",fontWeight:"bold",border:"1px solid rgba(255,255,255,.2)"});
+    ui.textContent="🛡️ SHIELD RACE";
+    document.body.appendChild(ui);
+
+    let players=[{x:120,y:canvas.height/2-30,w:18,h:90,color:"#67e8f9",keyUp:"w",keyDown:"s"},{x:canvas.width-138,y:canvas.height/2-30,w:18,h:90,color:"#fda4af",keyUp:"ArrowUp",keyDown:"ArrowDown"}];
+    const finishX=canvas.width*0.8; let animationId,lastTime=performance.now();
+
+    function update(dt){
+        for(const p of players){
+            if((keys[p.keyUp]||false)) p.y-=260*dt; if((keys[p.keyDown]||false)) p.y+=260*dt; p.y=Math.max(20,Math.min(canvas.height-p.h-20,p.y));
+            if(p.x < finishX && p.x + p.w > finishX) p.x = finishX - p.w;
+        }
+        for(const p of players){ p.x += 0; }
+        players[0].x += (keys["d"]? 150:0)*dt;
+        players[1].x += (keys["ArrowRight"]? 150:0)*dt;
+        players[0].x = Math.min(players[0].x, finishX - 20);
+        players[1].x = Math.min(players[1].x, finishX - 20);
+    }
+
+    let keys={};
+    function keyDown(e){ keys[e.key]=true; }
+    function keyUp(e){ keys[e.key]=false; }
+
+    function draw(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle="#061b12"; ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.strokeStyle="rgba(255,255,255,.2)"; ctx.beginPath(); ctx.moveTo(finishX,0); ctx.lineTo(finishX,canvas.height); ctx.stroke();
+        for(const p of players){ ctx.fillStyle=p.color; roundRectHub(ctx,p.x,p.y,p.w,p.h,8); ctx.fill(); }
+    }
+
+    function loop(ts){ const dt=Math.min((ts-lastTime)/1000,.03); lastTime=ts; update(dt); draw(); animationId=requestAnimationFrame(loop); }
+    window.addEventListener("keydown",keyDown); window.addEventListener("keyup",keyUp);
+    back.onclick=()=>{ cancelAnimationFrame(animationId); showMainMenu(); };
+    animationId=requestAnimationFrame(loop);
+    currentCleanup=()=>{ cancelAnimationFrame(animationId); window.removeEventListener("keydown",keyDown); window.removeEventListener("keyup",keyUp); canvas.remove(); back.remove(); ui.remove(); };
+}
+
+// ============================================================
+// PULSE TAP
+// ============================================================
+
+function startPulseTap(){
+    document.body.style.userSelect="none"; document.body.style.webkitUserSelect="none"; document.body.style.touchAction="none";
+    const canvas=document.createElement("canvas"); const ctx=canvas.getContext("2d");
+    function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+    resize(); Object.assign(canvas.style,{position:"fixed",inset:"0",width:"100%",height:"100%",zIndex:"100000",background:"#08131f",touchAction:"none",userSelect:"none"}); document.body.appendChild(canvas);
+    const back=makeBackButton("pulse-back");
+    const ui=document.createElement("div"); Object.assign(ui.style,{position:"fixed",top:"12px",left:"12px",zIndex:"100002",background:"rgba(8,19,31,.9)",color:"#fff",padding:"8px 12px",borderRadius:"10px",fontFamily:"Arial,sans-serif",fontWeight:"bold",border:"1px solid rgba(255,255,255,.2)"}); ui.textContent="⚡ PULSE TAP"; document.body.appendChild(ui);
+    let score=0,lastTime=performance.now(),target={x:0,y:0,r:28};
+    function randomizeTarget(){ target.x=Math.random()*canvas.width; target.y=Math.random()*canvas.height; target.r=18+Math.random()*18; }
+    randomizeTarget();
+    function pointerDown(e){ const rect=canvas.getBoundingClientRect(); const x=e.clientX-rect.left; const y=e.clientY-rect.top; const d=Math.hypot(x-target.x,y-target.y); if(d<target.r){ score++; randomizeTarget(); } }
+    function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#08131f"; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#38bdf8"; ctx.beginPath(); ctx.arc(target.x,target.y,target.r,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#fff"; ctx.font="900 36px Arial"; ctx.textAlign="center"; ctx.fillText(score,canvas.width/2,80); }
+    function loop(ts){ draw(); animationId=requestAnimationFrame(loop); }
+    let animationId=requestAnimationFrame(loop); canvas.addEventListener("pointerdown",pointerDown,{passive:true}); back.onclick=()=>{ cancelAnimationFrame(animationId); showMainMenu(); }; currentCleanup=()=>{ cancelAnimationFrame(animationId); canvas.remove(); back.remove(); ui.remove(); };
+}
+
+// ============================================================
+// ORBIT DODGE
+// ============================================================
+
+function startOrbitDodge(){
+    document.body.style.userSelect="none"; document.body.style.webkitUserSelect="none"; document.body.style.touchAction="none";
+    const canvas=document.createElement("canvas"); const ctx=canvas.getContext("2d");
+    function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+    resize(); Object.assign(canvas.style,{position:"fixed",inset:"0",width:"100%",height:"100%",zIndex:"100000",background:"#130d1a",touchAction:"none",userSelect:"none"}); document.body.appendChild(canvas);
+    const back=makeBackButton("orbit-back");
+    const ui=document.createElement("div"); Object.assign(ui.style,{position:"fixed",top:"12px",left:"12px",zIndex:"100002",background:"rgba(19,13,26,.9)",color:"#fff",padding:"8px 12px",borderRadius:"10px",fontFamily:"Arial,sans-serif",fontWeight:"bold",border:"1px solid rgba(255,255,255,.2)"}); ui.textContent="🛰️ ORBIT DODGE"; document.body.appendChild(ui);
+    let player={x:canvas.width/2,y:canvas.height/2,r:16}; let obstacles=[]; let score=0; let animationId,lastTime=performance.now();
+    function spawn(){ obstacles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:12+Math.random()*18,vx:(Math.random()-0.5)*220,vy:(Math.random()-0.5)*220}); }
+    function update(dt){
+        if(keys["ArrowLeft"]||keys["a"]) player.x-=260*dt; if(keys["ArrowRight"]||keys["d"]) player.x+=260*dt; if(keys["ArrowUp"]||keys["w"]) player.y-=260*dt; if(keys["ArrowDown"]||keys["s"]) player.y+=260*dt;
+        player.x=Math.max(20,Math.min(canvas.width-20,player.x)); player.y=Math.max(20,Math.min(canvas.height-20,player.y));
+        for(const o of obstacles){ o.x+=o.vx*dt; o.y+=o.vy*dt; if(o.x<0||o.x>canvas.width) o.vx*=-1; if(o.y<0||o.y>canvas.height) o.vy*=-1; if(Math.hypot(player.x-o.x,player.y-o.y)<player.r+o.r){ score=0; obstacles.length=0; for(let i=0;i<6;i++) spawn(); } }
+        score += dt*10;
+    }
+    let keys={}; function keyDown(e){ keys[e.key]=true; } function keyUp(e){ keys[e.key]=false; }
+    function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#130d1a"; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#a78bfa"; ctx.beginPath(); ctx.arc(player.x,player.y,player.r,0,Math.PI*2); ctx.fill(); for(const o of obstacles){ ctx.fillStyle="#fca5a5"; ctx.beginPath(); ctx.arc(o.x,o.y,o.r,0,Math.PI*2); ctx.fill(); } ctx.fillStyle="#fff"; ctx.font="900 30px Arial"; ctx.textAlign="center"; ctx.fillText(Math.floor(score),canvas.width/2,70); }
+    function loop(ts){ const dt=Math.min((ts-lastTime)/1000,.03); lastTime=ts; update(dt); draw(); animationId=requestAnimationFrame(loop); }
+    for(let i=0;i<6;i++) spawn(); window.addEventListener("keydown",keyDown); window.addEventListener("keyup",keyUp); animationId=requestAnimationFrame(loop); back.onclick=()=>{ cancelAnimationFrame(animationId); showMainMenu(); }; currentCleanup=()=>{ cancelAnimationFrame(animationId); window.removeEventListener("keydown",keyDown); window.removeEventListener("keyup",keyUp); canvas.remove(); back.remove(); ui.remove(); };
+}
+
+// ============================================================
+// GRID FLIP
+// ============================================================
+
+function startGridFlip(){
+    document.body.style.userSelect="none"; document.body.style.webkitUserSelect="none"; document.body.style.touchAction="none";
+    const canvas=document.createElement("canvas"); const ctx=canvas.getContext("2d");
+    function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+    resize(); Object.assign(canvas.style,{position:"fixed",inset:"0",width:"100%",height:"100%",zIndex:"100000",background:"#1c0f0a",touchAction:"none",userSelect:"none"}); document.body.appendChild(canvas);
+    const back=makeBackButton("grid-back");
+    const ui=document.createElement("div"); Object.assign(ui.style,{position:"fixed",top:"12px",left:"12px",zIndex:"100002",background:"rgba(28,15,10,.9)",color:"#fff",padding:"8px 12px",borderRadius:"10px",fontFamily:"Arial,sans-serif",fontWeight:"bold",border:"1px solid rgba(255,255,255,.2)"}); ui.textContent="🎲 GRID FLIP"; document.body.appendChild(ui);
+    let board=[],turn=1,score=[0,0]; const size=3; let animationId;
+    function reset(){ board=[]; for(let r=0;r<size;r++){ const row=[]; for(let c=0;c<size;c++) row.push(Math.random()>0.5?1:0); board.push(row); } }
+    reset();
+    function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#1c0f0a"; ctx.fillRect(0,0,canvas.width,canvas.height); const cell=Math.min(canvas.width,canvas.height)*0.18; const offX=(canvas.width-cell*size)/2; const offY=(canvas.height-cell*size)/2; for(let r=0;r<size;r++){ for(let c=0;c<size;c++){ const x=offX+c*cell; const y=offY+r*cell; ctx.fillStyle=board[r][c]?"#f59e0b":"#2e2b2b"; ctx.fillRect(x,y,cell-10,cell-10); } } ctx.fillStyle="#fff"; ctx.font="900 38px Arial"; ctx.textAlign="center"; ctx.fillText(score[0],canvas.width/2-80,70); ctx.fillText(score[1],canvas.width/2+80,70); }
+    function handleClick(e){ const rect=canvas.getBoundingClientRect(); const x=e.clientX-rect.left; const y=e.clientY-rect.top; const cell=Math.min(canvas.width,canvas.height)*0.18; const offX=(canvas.width-cell*size)/2; const offY=(canvas.height-cell*size)/2; const c=Math.floor((x-offX)/cell); const r=Math.floor((y-offY)/cell); if(r<0||r>=size||c<0||c>=size) return; if(board[r][c]===null) return; board[r][c]=1-board[r][c]; score[turn-1]++; turn=turn===1?2:1; }
+    canvas.addEventListener("pointerdown",handleClick,{passive:true}); back.onclick=()=>{ cancelAnimationFrame(animationId); showMainMenu(); }; animationId=requestAnimationFrame(function loop(){ draw(); animationId=requestAnimationFrame(loop); }); currentCleanup=()=>{ cancelAnimationFrame(animationId); canvas.remove(); back.remove(); ui.remove(); };
+}
+
+// ============================================================
+// STAR DASH
+// ============================================================
+
+function startStarDash(){
+    document.body.style.userSelect="none"; document.body.style.webkitUserSelect="none"; document.body.style.touchAction="none";
+    const canvas=document.createElement("canvas"); const ctx=canvas.getContext("2d");
+    function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+    resize(); Object.assign(canvas.style,{position:"fixed",inset:"0",width:"100%",height:"100%",zIndex:"100000",background:"#08141d",touchAction:"none",userSelect:"none"}); document.body.appendChild(canvas);
+    const back=makeBackButton("dash-back");
+    const ui=document.createElement("div"); Object.assign(ui.style,{position:"fixed",top:"12px",left:"12px",zIndex:"100002",background:"rgba(8,20,29,.9)",color:"#fff",padding:"8px 12px",borderRadius:"10px",fontFamily:"Arial,sans-serif",fontWeight:"bold",border:"1px solid rgba(255,255,255,.2)"}); ui.textContent="🌠 STAR DASH"; document.body.appendChild(ui);
+    let x=canvas.width/2, y=canvas.height/2, score=0; let animationId,lastTime=performance.now(); function update(dt){ if(keys["ArrowLeft"]||keys["a"]) x-=220*dt; if(keys["ArrowRight"]||keys["d"]) x+=220*dt; if(keys["ArrowUp"]||keys["w"]) y-=220*dt; if(keys["ArrowDown"]||keys["s"]) y+=220*dt; x=Math.max(20,Math.min(canvas.width-20,x)); y=Math.max(20,Math.min(canvas.height-20,y)); }
+    let keys={}; function keyDown(e){ keys[e.key]=true; } function keyUp(e){ keys[e.key]=false; }
+    function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#08141d"; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#f472b6"; ctx.beginPath(); ctx.arc(x,y,18,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#fff"; ctx.font="900 30px Arial"; ctx.textAlign="center"; ctx.fillText(score,canvas.width/2,70); }
+    function loop(ts){ const dt=Math.min((ts-lastTime)/1000,.03); lastTime=ts; update(dt); score+=dt*10; draw(); animationId=requestAnimationFrame(loop); }
+    window.addEventListener("keydown",keyDown); window.addEventListener("keyup",keyUp); animationId=requestAnimationFrame(loop); back.onclick=()=>{ cancelAnimationFrame(animationId); showMainMenu(); }; currentCleanup=()=>{ cancelAnimationFrame(animationId); window.removeEventListener("keydown",keyDown); window.removeEventListener("keyup",keyUp); canvas.remove(); back.remove(); ui.remove(); };
+}
+
+// ============================================================
+// BEAT POP
+// ============================================================
+
+function startBeatPop(){
+    document.body.style.userSelect="none"; document.body.style.webkitUserSelect="none"; document.body.style.touchAction="none";
+    const canvas=document.createElement("canvas"); const ctx=canvas.getContext("2d");
+    function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+    resize(); Object.assign(canvas.style,{position:"fixed",inset:"0",width:"100%",height:"100%",zIndex:"100000",background:"#0b1020",touchAction:"none",userSelect:"none"}); document.body.appendChild(canvas);
+    const back=makeBackButton("beat-back");
+    const ui=document.createElement("div"); Object.assign(ui.style,{position:"fixed",top:"12px",left:"12px",zIndex:"100002",background:"rgba(11,16,32,.9)",color:"#fff",padding:"8px 12px",borderRadius:"10px",fontFamily:"Arial,sans-serif",fontWeight:"bold",border:"1px solid rgba(255,255,255,.2)"}); ui.textContent="🎵 BEAT POP"; document.body.appendChild(ui);
+    let score=0; let popups=[]; let animationId,lastTime=performance.now();
+    function spawn(){ popups.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:18+Math.random()*12,life:60,color:"#34d399"}); }
+    function update(dt){ for(let i=popups.length-1;i>=0;i--){ popups[i].life--; if(popups[i].life<=0) popups.splice(i,1); } if(Math.random()<0.03) spawn(); }
+    function pointerDown(e){ const rect=canvas.getBoundingClientRect(); const x=e.clientX-rect.left; const y=e.clientY-rect.top; for(let i=popups.length-1;i>=0;i--){ const p=popups[i]; const d=Math.hypot(x-p.x,y-p.y); if(d<p.r){ popups.splice(i,1); score++; } } }
+    function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#0b1020"; ctx.fillRect(0,0,canvas.width,canvas.height); for(const p of popups){ ctx.fillStyle=p.color; ctx.globalAlpha=Math.max(0,p.life/60); ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; } ctx.fillStyle="#fff"; ctx.font="900 30px Arial"; ctx.textAlign="center"; ctx.fillText(score,canvas.width/2,70); }
+    function loop(ts){ const dt=Math.min((ts-lastTime)/1000,.03); lastTime=ts; update(dt); draw(); animationId=requestAnimationFrame(loop); }
+    canvas.addEventListener("pointerdown",pointerDown,{passive:true}); animationId=requestAnimationFrame(loop); back.onclick=()=>{ cancelAnimationFrame(animationId); showMainMenu(); }; currentCleanup=()=>{ cancelAnimationFrame(animationId); canvas.remove(); back.remove(); ui.remove(); };
+}
+
+// ============================================================
+// FLARE RUN
+// ============================================================
+
+function startFlareRun(){
+    document.body.style.userSelect="none"; document.body.style.webkitUserSelect="none"; document.body.style.touchAction="none";
+    const canvas=document.createElement("canvas"); const ctx=canvas.getContext("2d");
+    function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+    resize(); Object.assign(canvas.style,{position:"fixed",inset:"0",width:"100%",height:"100%",zIndex:"100000",background:"#1a0f13",touchAction:"none",userSelect:"none"}); document.body.appendChild(canvas);
+    const back=makeBackButton("flare-back");
+    const ui=document.createElement("div"); Object.assign(ui.style,{position:"fixed",top:"12px",left:"12px",zIndex:"100002",background:"rgba(26,15,19,.9)",color:"#fff",padding:"8px 12px",borderRadius:"10px",fontFamily:"Arial,sans-serif",fontWeight:"bold",border:"1px solid rgba(255,255,255,.2)"}); ui.textContent="🔥 FLARE RUN"; document.body.appendChild(ui);
+    let x=80,y=canvas.height/2, score=0, obstacles=[]; let animationId,lastTime=performance.now();
+    function spawn(){ obstacles.push({x:canvas.width+20,y:Math.random()*canvas.height,w:24,h:24+Math.random()*48,vx:-220- Math.random()*100}); }
+    function update(dt){
+        if(keys["ArrowUp"]||keys["w"]) y-=260*dt; if(keys["ArrowDown"]||keys["s"]) y+=260*dt; y=Math.max(20,Math.min(canvas.height-20,y));
+        for(let i=obstacles.length-1;i>=0;i--){ obstacles[i].x+=obstacles[i].vx*dt; if(obstacles[i].x+obstacles[i].w<0) obstacles.splice(i,1); else if(Math.abs(obstacles[i].x-x)<20 && Math.abs(obstacles[i].y-y)<20){ score=0; obstacles.length=0; } }
+        score += dt*10; if(Math.random()<0.02) spawn();
+    }
+    let keys={}; function keyDown(e){ keys[e.key]=true; } function keyUp(e){ keys[e.key]=false; }
+    function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#1a0f13"; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#fb7185"; ctx.fillRect(x-16,y-16,32,32); for(const o of obstacles){ ctx.fillStyle="#fbbf24"; ctx.fillRect(o.x,o.y,o.w,o.h); } ctx.fillStyle="#fff"; ctx.font="900 30px Arial"; ctx.textAlign="center"; ctx.fillText(Math.floor(score),canvas.width/2,70); }
+    function loop(ts){ const dt=Math.min((ts-lastTime)/1000,.03); lastTime=ts; update(dt); draw(); animationId=requestAnimationFrame(loop); }
+    window.addEventListener("keydown",keyDown); window.addEventListener("keyup",keyUp); animationId=requestAnimationFrame(loop); back.onclick=()=>{ cancelAnimationFrame(animationId); showMainMenu();}; currentCleanup=()=>{ cancelAnimationFrame(animationId); window.removeEventListener("keydown",keyDown); window.removeEventListener("keyup",keyUp); canvas.remove(); back.remove(); ui.remove(); };
 }
 
 // ============================================================
