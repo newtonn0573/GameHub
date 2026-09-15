@@ -10,7 +10,7 @@ javascript:(function(){
 let currentCleanup = null;
 
 const SITE_ANNOUNCEMENT={
-    title:"Current Version: v2.68",
+    title:"Current Version: v2.70",
     text:"more 2 player games, bug fixes (yippe) also rocket tag is like better because dash, flare run has double jump now, uh graphics update for flappy bird, wave, and asteroids",
     accent:"#67e8f9"
 };
@@ -1412,143 +1412,36 @@ function startWavePro(){
         }
 
 
-        if(frame%75===0){
+        const segmentWidth=70;
+        const minCenter=90;
+        const maxCenter=canvas.height-90;
+        const corridorGap=gameMode==="DUAL"?185:205;
 
-            const gs=170;
-            const cx=canvas.width;
-            const cy=canvas.height/2;
-
-            if(gameMode==="DUAL"){
-
-                if(Math.random()>.4){
-
-                    const off=
-                        Math.random()*
-                        Math.max(
-                            40,
-                            cy-gs-50
-                        )+90;
-
-                    obstacles.push({
-                        x:cx,
-                        type:"zigzag",
-                        gapY:cy,
-                        gap:gs,
-                        amplitude:Math.min(120,off*.45),
-                        tooth:42+Math.random()*24,
-                        phase:Math.random()*Math.PI*2
-                    });
-
-                }else{
-
-                    obstacles.push({
-                        x:cx,
-                        type:"zigzag",
-                        gapY:cy,
-                        gap:270,
-                        amplitude:55+Math.random()*55,
-                        tooth:42+Math.random()*24,
-                        phase:Math.random()*Math.PI*2
-                    });
-                }
-
-            }else{
-
-                const th=
-                    Math.random()*
-                    Math.max(
-                        1,
-                        canvas.height-340
-                    )+50;
-
-                obstacles.push({
-                    x:cx,
-                    type:"zigzag",
-                    gapY:th+120,
-                    gap:240,
-                    amplitude:45+Math.random()*65,
-                    tooth:42+Math.random()*24,
-                    phase:Math.random()*Math.PI*2
-                });
-            }
+        while(obstacles.length<18){
+            const previous=obstacles[obstacles.length-1];
+            const previousCenter=previous?previous.center:canvas.height/2;
+            const center=Math.max(
+                minCenter,
+                Math.min(maxCenter,previousCenter+(Math.random()-.5)*150)
+            );
+            obstacles.push({
+                x:previous?previous.x+segmentWidth:canvas.width,
+                center:center,
+                gap:corridorGap,
+                passed:false
+            });
         }
 
-
-        ctx.fillStyle="#fff";
-
         for(let i=obstacles.length-1;i>=0;i--){
-
             const o=obstacles[i];
-            const my=canvas.height/2;
-
             o.x-=wave.speedX*dt;
-
-            ctx.save();
-
-            ctx.shadowColor="rgba(255,255,255,.45)";
-            ctx.shadowBlur=10;
-
-            const gapAt=x=>o.gapY+Math.sin((x-o.x)/o.tooth+o.phase)*o.amplitude;
-            const topEdge=x=>gapAt(x)-o.gap/2;
-            const bottomEdge=x=>gapAt(x)+o.gap/2;
-            const teeth=7;
-
-            ctx.fillStyle="rgba(0,210,255,.82)";
-            ctx.beginPath();
-            ctx.moveTo(o.x,0);
-            ctx.lineTo(o.x+60,0);
-            for(let n=teeth;n>=0;n--){
-                const x=o.x+n*60/teeth;
-                ctx.lineTo(x,topEdge(x));
-                ctx.lineTo(x-30/teeth,topEdge(x)+18);
-            }
-            ctx.closePath();
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.moveTo(o.x,canvas.height);
-            ctx.lineTo(o.x+60,canvas.height);
-            for(let n=teeth;n>=0;n--){
-                const x=o.x+n*60/teeth;
-                ctx.lineTo(x,bottomEdge(x));
-                ctx.lineTo(x-30/teeth,bottomEdge(x)-18);
-            }
-            ctx.closePath();
-            ctx.fill();
-
-            ctx.strokeStyle="#d8fbff";
-            ctx.lineWidth=3;
-            ctx.beginPath();
-            for(let n=0;n<=teeth;n++){
-                const x=o.x+n*60/teeth;
-                n===0?ctx.moveTo(x,topEdge(x)):ctx.lineTo(x,topEdge(x));
-            }
-            ctx.stroke();
-            ctx.beginPath();
-            for(let n=0;n<=teeth;n++){
-                const x=o.x+n*60/teeth;
-                n===0?ctx.moveTo(x,bottomEdge(x)):ctx.lineTo(x,bottomEdge(x));
-            }
-            ctx.stroke();
-
-            ctx.shadowBlur=0;
-            ctx.fillStyle="rgba(0,255,255,.2)";
-
-            ctx.restore();
-
+            const next=obstacles[i+1]||o;
+            const centerAt=x=>o.center+(next.center-o.center)*Math.max(0,Math.min(1,(x-o.x)/segmentWidth));
 
             function collide(p){
-
-                if(
-                    p.x+10>o.x &&
-                    p.x-10<o.x+60
-                ){
-
-                    const gapCenter=o.gapY+Math.sin((p.x-o.x)/o.tooth+o.phase)*o.amplitude;
-                    if(
-                        p.y<gapCenter-o.gap/2 ||
-                        p.y>gapCenter+o.gap/2
-                    ){
+                if(p.x+10>o.x&&p.x-10<o.x+segmentWidth){
+                    const center=centerAt(p.x);
+                    if(p.y<center-o.gap/2||p.y>center+o.gap/2){
                         gameRunning=false;
                         shaker.kick(14);
                     }
@@ -1556,24 +1449,68 @@ function startWavePro(){
             }
 
             collide(wave);
+            if(wave2)collide(wave2);
 
-            if(wave2){
-                collide(wave2);
-            }
-
-            if(
-                !o.passed &&
-                wave.x>o.x+60
-            ){
-
+            if(!o.passed&&wave.x>o.x+segmentWidth){
                 score++;
                 o.passed=true;
             }
 
-            if(o.x<-100){
-                obstacles.splice(i,1);
+            if(o.x<-segmentWidth*2)obstacles.splice(i,1);
+        }
+
+        ctx.save();
+        ctx.shadowColor="rgba(0,230,255,.55)";
+        ctx.shadowBlur=14;
+        const topRail=[];
+        const bottomRail=[];
+        for(const o of obstacles){
+            topRail.push({x:o.x,y:o.center-o.gap/2});
+            bottomRail.push({x:o.x,y:o.center+o.gap/2});
+        }
+
+        function drawRail(points,top){
+            if(points.length<2)return;
+            ctx.beginPath();
+            ctx.moveTo(points[0].x,top?0:canvas.height);
+            ctx.lineTo(points[0].x,points[0].y);
+            for(let i=0;i<points.length-1;i++){
+                const a=points[i];
+                const b=points[i+1];
+                const midX=(a.x+b.x)/2;
+                ctx.lineTo(midX,a.y);
+                ctx.lineTo(b.x,b.y);
+            }
+            ctx.lineTo(points[points.length-1].x,top?0:canvas.height);
+            ctx.closePath();
+            ctx.fillStyle="rgba(0,180,230,.78)";
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(points[0].x,points[0].y);
+            for(const point of points)ctx.lineTo(point.x,point.y);
+            ctx.strokeStyle="#d7fbff";
+            ctx.lineWidth=3;
+            ctx.stroke();
+
+            ctx.fillStyle="#8ff7ff";
+            for(let i=0;i<points.length-1;i++){
+                const a=points[i];
+                const b=points[i+1];
+                const midX=(a.x+b.x)/2;
+                const midY=(a.y+b.y)/2;
+                ctx.beginPath();
+                ctx.moveTo(midX-12,midY);
+                ctx.lineTo(midX+12,midY);
+                ctx.lineTo(midX,midY+(top?22:-22));
+                ctx.closePath();
+                ctx.fill();
             }
         }
+
+        drawRail(topRail,true);
+        drawRail(bottomRail,false);
+        ctx.restore();
 
 
         if(
