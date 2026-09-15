@@ -11,7 +11,7 @@ let currentCleanup = null;
 
 const SITE_ANNOUNCEMENT={
     title:"Current Version: v2.68",
-    text:"more 2 player games, bug fixes (yippe) also rocket tag is like better because dash, flare run has double jump now",
+    text:"more 2 player games, bug fixes (yippe) also rocket tag is like better because dash, flare run has double jump now, uh graphics update for flappy bird, wave, and asteroids",
     accent:"#67e8f9"
 };
 
@@ -1431,18 +1431,24 @@ function startWavePro(){
 
                     obstacles.push({
                         x:cx,
-                        type:"split",
-                        gs:gs,
-                        off:off
+                        type:"zigzag",
+                        gapY:cy,
+                        gap:gs,
+                        amplitude:Math.min(120,off*.45),
+                        tooth:42+Math.random()*24,
+                        phase:Math.random()*Math.PI*2
                     });
 
                 }else{
 
                     obstacles.push({
                         x:cx,
-                        type:"single",
-                        t:cy-135,
-                        b:cy+135
+                        type:"zigzag",
+                        gapY:cy,
+                        gap:270,
+                        amplitude:55+Math.random()*55,
+                        tooth:42+Math.random()*24,
+                        phase:Math.random()*Math.PI*2
                     });
                 }
 
@@ -1457,9 +1463,12 @@ function startWavePro(){
 
                 obstacles.push({
                     x:cx,
-                    type:"single",
-                    t:th,
-                    b:th+240
+                    type:"zigzag",
+                    gapY:th+120,
+                    gap:240,
+                    amplitude:45+Math.random()*65,
+                    tooth:42+Math.random()*24,
+                    phase:Math.random()*Math.PI*2
                 });
             }
         }
@@ -1479,60 +1488,51 @@ function startWavePro(){
             ctx.shadowColor="rgba(255,255,255,.45)";
             ctx.shadowBlur=10;
 
-            if(o.type==="single"){
+            const gapAt=x=>o.gapY+Math.sin((x-o.x)/o.tooth+o.phase)*o.amplitude;
+            const topEdge=x=>gapAt(x)-o.gap/2;
+            const bottomEdge=x=>gapAt(x)+o.gap/2;
+            const teeth=7;
 
-                ctx.fillRect(
-                    o.x,
-                    0,
-                    60,
-                    o.t
-                );
-
-                ctx.fillRect(
-                    o.x,
-                    o.b,
-                    60,
-                    canvas.height
-                );
-
-            }else{
-
-                ctx.fillRect(
-                    o.x,
-                    0,
-                    60,
-                    my-o.off-o.gs/2
-                );
-
-                ctx.fillRect(
-                    o.x,
-                    my-o.off+o.gs/2,
-                    60,
-                    o.off*2-o.gs
-                );
-
-                ctx.fillRect(
-                    o.x,
-                    my+o.off+o.gs/2,
-                    60,
-                    canvas.height
-                );
+            ctx.fillStyle="rgba(0,210,255,.82)";
+            ctx.beginPath();
+            ctx.moveTo(o.x,0);
+            ctx.lineTo(o.x+60,0);
+            for(let n=teeth;n>=0;n--){
+                const x=o.x+n*60/teeth;
+                ctx.lineTo(x,topEdge(x));
+                ctx.lineTo(x-30/teeth,topEdge(x)+18);
             }
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(o.x,canvas.height);
+            ctx.lineTo(o.x+60,canvas.height);
+            for(let n=teeth;n>=0;n--){
+                const x=o.x+n*60/teeth;
+                ctx.lineTo(x,bottomEdge(x));
+                ctx.lineTo(x-30/teeth,bottomEdge(x)-18);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle="#d8fbff";
+            ctx.lineWidth=3;
+            ctx.beginPath();
+            for(let n=0;n<=teeth;n++){
+                const x=o.x+n*60/teeth;
+                n===0?ctx.moveTo(x,topEdge(x)):ctx.lineTo(x,topEdge(x));
+            }
+            ctx.stroke();
+            ctx.beginPath();
+            for(let n=0;n<=teeth;n++){
+                const x=o.x+n*60/teeth;
+                n===0?ctx.moveTo(x,bottomEdge(x)):ctx.lineTo(x,bottomEdge(x));
+            }
+            ctx.stroke();
 
             ctx.shadowBlur=0;
             ctx.fillStyle="rgba(0,255,255,.2)";
-
-            if(o.type==="single"){
-
-                ctx.fillRect(o.x,t=0,60,3);
-
-                ctx.fillRect(
-                    o.x,
-                    o.b,
-                    60,
-                    3
-                );
-            }
 
             ctx.restore();
 
@@ -1544,37 +1544,13 @@ function startWavePro(){
                     p.x-10<o.x+60
                 ){
 
-                    if(o.type==="single"){
-
-                        if(
-                            p.y<o.t ||
-                            p.y>o.b
-                        ){
-                            gameRunning=false;
-                            shaker.kick(14);
-                        }
-
-                    }else{
-
-                        const tT=
-                            my-o.off-o.gs/2;
-
-                        const tB=
-                            my-o.off+o.gs/2;
-
-                        const bT=
-                            my+o.off-o.gs/2;
-
-                        const bB=
-                            my+o.off+o.gs/2;
-
-                        if(!(
-                            (p.y>tT&&p.y<tB)||
-                            (p.y>bT&&p.y<bB)
-                        )){
-                            gameRunning=false;
-                            shaker.kick(14);
-                        }
+                    const gapCenter=o.gapY+Math.sin((p.x-o.x)/o.tooth+o.phase)*o.amplitude;
+                    if(
+                        p.y<gapCenter-o.gap/2 ||
+                        p.y>gapCenter+o.gap/2
+                    ){
+                        gameRunning=false;
+                        shaker.kick(14);
                     }
                 }
             }
@@ -8318,6 +8294,7 @@ function startAsteroids(){
         ctx.translate(ship.x,ship.y);
         ctx.rotate(ship.angle);
 
+        ctx.fillStyle="rgba(18,66,94,.95)";
         ctx.strokeStyle="#5cd6ff";
         ctx.shadowColor="#5cd6ff";
         ctx.shadowBlur=10;
@@ -8329,7 +8306,13 @@ function startAsteroids(){
         ctx.lineTo(-5,0);
         ctx.lineTo(-10,9);
         ctx.closePath();
+        ctx.fill();
         ctx.stroke();
+
+        ctx.fillStyle="#dff9ff";
+        ctx.beginPath();
+        ctx.ellipse(1,0,5,3,0,0,Math.PI*2);
+        ctx.fill();
 
         ctx.restore();
     }
@@ -8340,6 +8323,11 @@ function startAsteroids(){
         ctx.translate(a.x,a.y);
         ctx.rotate(a.rot);
 
+        const rock=ctx.createRadialGradient(-a.size*.35,-a.size*.4,2,0,0,a.size);
+        rock.addColorStop(0,"#8998a8");
+        rock.addColorStop(.55,"#4d5d70");
+        rock.addColorStop(1,"#202b3b");
+        ctx.fillStyle=rock;
         ctx.strokeStyle="#b8c4d0";
         ctx.shadowColor="rgba(180,200,220,.4)";
         ctx.shadowBlur=6;
@@ -8353,7 +8341,23 @@ function startAsteroids(){
             else ctx.lineTo(x,y);
         });
         ctx.closePath();
+        ctx.fill();
         ctx.stroke();
+
+        ctx.fillStyle="rgba(8,15,25,.35)";
+        for(let i=0;i<Math.max(2,Math.floor(a.size/15));i++){
+            const craterAngle=a.rot*.7+i*2.4;
+            const craterRadius=a.size*(.22+((i*17)%20)/100);
+            ctx.beginPath();
+            ctx.arc(
+                Math.cos(craterAngle)*craterRadius,
+                Math.sin(craterAngle)*craterRadius,
+                Math.max(2,a.size*.07),
+                0,
+                Math.PI*2
+            );
+            ctx.fill();
+        }
 
         ctx.restore();
     }
@@ -9640,19 +9644,28 @@ function startFlappyBird(){
         const botH=canvas.height-groundH-botY;
 
         ctx.save();
-        ctx.fillStyle="#5cbf4f";
-        ctx.strokeStyle="#2e7d32";
+        const pipeGradient=ctx.createLinearGradient(p.x,0,p.x+PIPE_W,0);
+        pipeGradient.addColorStop(0,"#267a45");
+        pipeGradient.addColorStop(.28,"#65d66b");
+        pipeGradient.addColorStop(.7,"#42b95a");
+        pipeGradient.addColorStop(1,"#185b3c");
+        ctx.fillStyle=pipeGradient;
+        ctx.strokeStyle="#174d36";
         ctx.lineWidth=3;
 
         ctx.fillRect(p.x,0,PIPE_W,topH);
         ctx.strokeRect(p.x,0,PIPE_W,topH);
-        ctx.fillRect(p.x-5,topH-26,PIPE_W+10,26);
-        ctx.strokeRect(p.x-5,topH-26,PIPE_W+10,26);
+        ctx.fillRect(p.x-8,topH-30,PIPE_W+16,30);
+        ctx.strokeRect(p.x-8,topH-30,PIPE_W+16,30);
 
         ctx.fillRect(p.x,botY,PIPE_W,botH);
         ctx.strokeRect(p.x,botY,PIPE_W,botH);
-        ctx.fillRect(p.x-5,botY,PIPE_W+10,26);
-        ctx.strokeRect(p.x-5,botY,PIPE_W+10,26);
+        ctx.fillRect(p.x-8,botY,PIPE_W+16,30);
+        ctx.strokeRect(p.x-8,botY,PIPE_W+16,30);
+
+        ctx.fillStyle="rgba(255,255,255,.2)";
+        ctx.fillRect(p.x+10,0,8,Math.max(0,topH-4));
+        ctx.fillRect(p.x+10,botY+4,8,Math.max(0,botH-4));
 
         ctx.restore();
     }
@@ -9693,6 +9706,14 @@ function startFlappyBird(){
         ctx.ellipse(-4,4,7,5,.3,0,Math.PI*2);
         ctx.fill();
 
+        ctx.fillStyle="#f29b25";
+        ctx.beginPath();
+        ctx.moveTo(-12,5);
+        ctx.lineTo(-24,12);
+        ctx.lineTo(-9,12);
+        ctx.closePath();
+        ctx.fill();
+
         ctx.restore();
     }
 
@@ -9713,6 +9734,20 @@ function startFlappyBird(){
             ctx.beginPath();
             ctx.arc(cxp,80+i*40%160,26,0,Math.PI*2);
             ctx.arc(cxp+22,72+i*40%160,20,0,Math.PI*2);
+            ctx.fill();
+        }
+
+        for(let layer=0;layer<3;layer++){
+            const base=canvas.height-groundH-layer*26;
+            ctx.fillStyle=layer===0?"#78c59d":layer===1?"#53a883":"#3a806d";
+            ctx.beginPath();
+            ctx.moveTo(0,base);
+            for(let x=0;x<=canvas.width+80;x+=80){
+                const y=base-35-layer*18-Math.sin(x*.012+layer*1.7)*24;
+                ctx.lineTo(x,y);
+            }
+            ctx.lineTo(canvas.width,base);
+            ctx.closePath();
             ctx.fill();
         }
 
