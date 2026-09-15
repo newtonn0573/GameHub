@@ -10,8 +10,8 @@ javascript:(function(){
 let currentCleanup = null;
 
 const SITE_ANNOUNCEMENT={
-    title:"Game Hub v2",
-    text:"6767676767",
+    title:"Current Version: v2.4",
+    text:"in the new update graphics look better and game descriptions were added. ok go have fun",
     accent:"#67e8f9"
 };
 
@@ -465,15 +465,50 @@ function showMainMenu(){
 
         const b=document.createElement("button");
         b.type="button";
+        b.style.position="relative";
+
+        const shine=document.createElement("div");
+        Object.assign(shine.style,{
+            position:"absolute",
+            inset:"0",
+            background:"radial-gradient(circle at top left, rgba(255,255,255,.28), transparent 32%)",
+            pointerEvents:"none"
+        });
+        b.appendChild(shine);
+
+        const tag=document.createElement("div");
+        tag.textContent=label.split(" ")[0];
+        Object.assign(tag.style,{
+            position:"absolute",
+            top:"12px",
+            right:"12px",
+            minWidth:"38px",
+            height:"26px",
+            display:"flex",
+            alignItems:"center",
+            justifyContent:"center",
+            borderRadius:"999px",
+            padding:"0 10px",
+            fontSize:"11px",
+            fontWeight:"900",
+            letterSpacing:"1px",
+            background:"rgba(8,12,20,.34)",
+            border:"1px solid rgba(255,255,255,.25)",
+            color:"#f8fbff",
+            boxShadow:"inset 0 1px 0 rgba(255,255,255,.18)"
+        });
+        b.appendChild(tag);
 
         const titleRow=document.createElement("div");
         titleRow.textContent=label;
         Object.assign(titleRow.style,{
             fontSize:"19px",
             fontWeight:"900",
-            letterSpacing:"0.6px",
+            letterSpacing:"0.7px",
             textAlign:"left",
-            width:"100%"
+            width:"100%",
+            lineHeight:"1.15",
+            paddingRight:"62px"
         });
 
         const desc=document.createElement("div");
@@ -485,11 +520,14 @@ function showMainMenu(){
             color:"rgba(255,255,255,.82)",
             textAlign:"left",
             width:"100%",
-            fontWeight:"600"
+            fontWeight:"600",
+            maxWidth:"180px"
         });
 
         const inner=document.createElement("div");
         Object.assign(inner.style,{
+            position:"relative",
+            zIndex:"1",
             display:"flex",
             flexDirection:"column",
             alignItems:"flex-start",
@@ -503,55 +541,63 @@ function showMainMenu(){
 
         Object.assign(b.style,{
             width:"100%",
-            minHeight:"120px",
-            border:"1px solid rgba(255,255,255,.22)",
-            borderRadius:"18px",
-            padding:"16px 18px",
+            minHeight:"132px",
+            border:"1px solid rgba(255,255,255,.24)",
+            borderRadius:"20px",
+            padding:"18px 18px 16px",
             background:
-                "linear-gradient(135deg,"+
+                "linear-gradient(135deg, "+
                 color+
-                " 0%,rgba(14,18,28,.95) 100%)",
+                " 0%, rgba(22,26,36,.94) 46%, rgba(7,9,14,.96) 100%)",
             color:"#fff",
             fontSize:"17px",
             fontWeight:"bold",
             cursor:"pointer",
             boxShadow:
-                "0 0 22px rgba(255,255,255,.08), 0 12px 30px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.28)",
-            transition:"transform .12s ease, filter .12s ease, box-shadow .12s ease",
+                "0 0 0 1px rgba(255,255,255,.08), 0 16px 34px rgba(0,0,0,.45), 0 0 26px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.22)",
+            transition:"transform .12s ease, filter .12s ease, box-shadow .12s ease, border-color .12s ease",
             touchAction:"manipulation",
             letterSpacing:"0.4px",
             textAlign:"left",
             display:"flex",
             alignItems:"stretch",
-            justifyContent:"center"
+            justifyContent:"center",
+            overflow:"hidden",
+            isolation:"isolate",
+            outline:"none"
         });
 
         b.onpointerdown=function(){
             b.style.transform="scale(.985)";
-            b.style.filter="brightness(1.18)";
-            b.style.boxShadow="0 0 28px rgba(255,255,255,.18), 0 12px 22px rgba(0,0,0,.30)";
+            b.style.filter="brightness(1.18) saturate(1.15)";
+            b.style.boxShadow="0 0 0 1px rgba(255,255,255,.12), 0 12px 26px rgba(0,0,0,.35), 0 0 30px rgba(255,255,255,.12), inset 0 1px 0 rgba(255,255,255,.3)";
+            b.style.borderColor="rgba(255,255,255,.42)";
         };
 
         b.onpointerup=function(){
             b.style.transform="scale(1)";
-            b.style.filter="brightness(1)";
-            b.style.boxShadow="0 0 22px rgba(255,255,255,.08), 0 12px 30px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.28)";
+            b.style.filter="brightness(1) saturate(1)";
+            b.style.boxShadow="0 0 0 1px rgba(255,255,255,.08), 0 16px 34px rgba(0,0,0,.45), 0 0 26px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.22)";
+            b.style.borderColor="rgba(255,255,255,.24)";
         };
 
         b.onpointercancel=function(){
             b.style.transform="scale(1)";
-            b.style.filter="brightness(1)";
-            b.style.boxShadow="0 0 22px rgba(255,255,255,.08), 0 12px 30px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.28)";
+            b.style.filter="brightness(1) saturate(1)";
+            b.style.boxShadow="0 0 0 1px rgba(255,255,255,.08), 0 16px 34px rgba(0,0,0,.45), 0 0 26px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.22)";
+            b.style.borderColor="rgba(255,255,255,.24)";
         };
 
         b.onmouseenter=function(){
-            b.style.transform="translateY(-2px)";
-            b.style.filter="brightness(1.05)";
+            b.style.transform="translateY(-3px)";
+            b.style.filter="brightness(1.06) saturate(1.08)";
+            b.style.boxShadow="0 0 0 1px rgba(255,255,255,.12), 0 20px 42px rgba(0,0,0,.55), 0 0 34px rgba(162,203,255,.15), inset 0 1px 0 rgba(255,255,255,.25)";
         };
 
         b.onmouseleave=function(){
             b.style.transform="translateY(0)";
-            b.style.filter="brightness(1)";
+            b.style.filter="brightness(1) saturate(1)";
+            b.style.boxShadow="0 0 0 1px rgba(255,255,255,.08), 0 16px 34px rgba(0,0,0,.45), 0 0 26px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.22)";
         };
 
         b.onclick=callback;
