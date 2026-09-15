@@ -11,7 +11,7 @@ let currentCleanup = null;
 
 const SITE_ANNOUNCEMENT={
     title:"Current Version: v2.67",
-    text:"uh more games and ",
+    text:"uh more games and 67",
     accent:"#67e8f9"
 };
 
