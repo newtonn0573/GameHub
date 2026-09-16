@@ -10,7 +10,7 @@ javascript:(function(){
 let currentCleanup = null;
 
 const SITE_ANNOUNCEMENT={
-    title:"Current Version: v2.78",
+    title:"Current Version: v2.79",
     text:"allot of graphics changes, new games, bug fixes, MASS WAVE AND TOWER DEFENSE UPDATES.",
     accent:"#67e8f9"
 };
@@ -2062,7 +2062,7 @@ function startTowerDefense(){
     let path=[];
     let animationId;
     let gameOver=false;
-    let paused=false;
+    let paused=true;
     const floatText=makeFloatingTextPool();
     const shaker=makeShaker();
 
@@ -2638,6 +2638,31 @@ function startTowerDefense(){
     }
     syncDifficultyButtons();
 
+    const difficultyMenu=document.createElement("div");
+    Object.assign(difficultyMenu.style,{position:"fixed",inset:"0",zIndex:"100004",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"14px",background:"linear-gradient(145deg,rgba(5,18,22,.97),rgba(4,8,12,.98))",color:"#fff",fontFamily:"Arial,sans-serif",textAlign:"center"});
+    const difficultyTitle=document.createElement("div");
+    difficultyTitle.innerHTML="<div style='font-size:34px;font-weight:900;color:#f1c40f;text-shadow:0 0 18px rgba(241,196,15,.7)'>TOWER DEFENSE</div><div style='font-size:16px;margin-top:8px;color:#cfe8dc'>SELECT DIFFICULTY</div>";
+    difficultyMenu.appendChild(difficultyTitle);
+    for(const key of Object.keys(DIFFICULTY_SETTINGS)){
+        const cfg=DIFFICULTY_SETTINGS[key];
+        const button=document.createElement("button");
+        button.textContent=cfg.label;
+        Object.assign(button.style,{width:"220px",padding:"13px",borderRadius:"9px",border:"1px solid rgba(255,255,255,.35)",background:key==="EASY"?"#2ecc71":key==="NORMAL"?"#f1c40f":"#e74c3c",color:"#101820",fontSize:"17px",fontWeight:"900",cursor:"pointer",boxShadow:"0 5px 18px rgba(0,0,0,.35)"});
+        button.onclick=function(){
+            difficulty=key;
+            moneyCap=cfg.coinCap;
+            coins=cfg.startCoins;
+            health=cfg.startHealth;
+            resetWaveProgress();
+            difficultyMenu.remove();
+            shop.style.display="flex";
+            paused=false;
+            syncDifficultyButtons();
+        };
+        difficultyMenu.appendChild(button);
+    }
+    document.body.appendChild(difficultyMenu);
+
 
     for(const key in TOWER_DATA){
 
@@ -3205,6 +3230,7 @@ function startTowerDefense(){
         shop.remove();
         pauseBtn.remove();
         speedBtn.remove();
+        difficultyMenu.remove();
     };
 
 
