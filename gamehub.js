@@ -10,8 +10,8 @@ javascript:(function(){
 let currentCleanup = null;
 
 const SITE_ANNOUNCEMENT={
-    title:"Current Version: v2.75",
-    text:"allot of graphics changes, new 2 player games, bug fixes, MASS WAVE AND TOWER DEFENSE UPDATES.",
+    title:"Current Version: v2.78",
+    text:"allot of graphics changes, new games, bug fixes, MASS WAVE AND TOWER DEFENSE UPDATES.",
     accent:"#67e8f9"
 };
 
@@ -2867,8 +2867,8 @@ function startTowerDefense(){
 
         if(!gameOver){
 
-            difficultyTime+=.008;
-            spawnTimer++;
+            difficultyTime+=.008*gameSpeedMultiplier;
+            spawnTimer+=gameSpeedMultiplier;
 
             const currentDifficulty=getDifficultySettings();
             const spawnRate=
@@ -2939,6 +2939,7 @@ function startTowerDefense(){
 
             if(!gameOver){
                 enemy.update();
+                if(gameSpeedMultiplier===2)enemy.update();
             }
 
             enemy.draw();
@@ -2973,6 +2974,7 @@ function startTowerDefense(){
 
             if(!gameOver){
                 tower.update();
+                if(gameSpeedMultiplier===2)tower.update();
             }
 
             tower.draw();
@@ -2987,6 +2989,7 @@ function startTowerDefense(){
 
             if(!gameOver){
                 bullets[i].update();
+                if(gameSpeedMultiplier===2&&!bullets[i].hit)bullets[i].update();
             }
 
             bullets[i].draw();
@@ -3201,6 +3204,7 @@ function startTowerDefense(){
         back.remove();
         shop.remove();
         pauseBtn.remove();
+        speedBtn.remove();
     };
 
 
