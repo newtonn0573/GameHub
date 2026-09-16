@@ -10,8 +10,8 @@ javascript:(function(){
 let currentCleanup = null;
 
 const SITE_ANNOUNCEMENT={
-    title:"Current Version: v2.72",
-    text:"allot of graphics changes, new 2 player games, bug fixes, MASS WAVE UPDATES.",
+    title:"Current Version: v2.74",
+    text:"allot of graphics changes, new 2 player games, bug fixes, MASS WAVE AND TOWER DEFENSE UPDATES.",
     accent:"#67e8f9"
 };
 
@@ -1860,6 +1860,51 @@ function startTowerDefense(){
 
     const BULLET_SPEED=7;
 
+    const DIFFICULTY_SETTINGS={
+        EASY:{
+            label:"EASY",
+            enemyScale:.9,
+            spawnScale:1,
+            startCoins:220,
+            startHealth:1200,
+            coinCap:500,
+            bossWaveInterval:5
+        },
+        NORMAL:{
+            label:"NORMAL",
+            enemyScale:1,
+            spawnScale:1.15,
+            startCoins:180,
+            startHealth:1000,
+            coinCap:320,
+            bossWaveInterval:3
+        },
+        HARD:{
+            label:"HARD",
+            enemyScale:1.3,
+            spawnScale:1.4,
+            startCoins:140,
+            startHealth:900,
+            coinCap:220,
+            bossWaveInterval:2
+        }
+    };
+
+    let difficulty="NORMAL";
+
+    function getDifficultySettings(){
+        return DIFFICULTY_SETTINGS[difficulty];
+    }
+
+    function addCoins(amount){
+        const gain=Math.min(
+            amount,
+            Math.max(0, moneyCap-coins)
+        );
+
+        coins+=gain;
+        return gain;
+    }
 
     const ENEMY_TYPES={
 
@@ -2000,10 +2045,14 @@ function startTowerDefense(){
     let enemies=[];
     let towers=[];
     let bullets=[];
-    let coins=150;
-    let health=1000;
+    let moneyCap=DIFFICULTY_SETTINGS[difficulty].coinCap;
+    let coins=DIFFICULTY_SETTINGS[difficulty].startCoins;
+    let health=DIFFICULTY_SETTINGS[difficulty].startHealth;
     let spawnTimer=0;
     let difficultyTime=0;
+    let waveNumber=1;
+    let enemiesThisWave=0;
+    let waveTarget=10;
     let path=[];
     let animationId;
     let gameOver=false;
@@ -2063,9 +2112,9 @@ function startTowerDefense(){
         constructor(type){
 
             const base=ENEMY_TYPES[type];
-
+            const currentDifficulty=getDifficultySettings();
             const scale=
-                1+difficultyTime*.01;
+                (1+difficultyTime*.01)*currentDifficulty.enemyScale;
 
             this.x=path[0].x;
             this.y=path[0].y;
@@ -2074,7 +2123,7 @@ function startTowerDefense(){
             this.maxHp=base.hp*scale;
             this.hp=this.maxHp;
             this.speed=base.speed*scale;
-            this.reward=base.reward;
+            this.reward=Math.round(base.reward*currentDifficulty.enemyScale*.8);
             this.color=base.color;
             this.slow=1;
             this.poison=0;
@@ -2244,7 +2293,10 @@ function startTowerDefense(){
 
                 if(this.cooldown--<=0){
 
-                    coins+=this.income;
+                    const gain=addCoins(this.income);
+                    if(gain>0){
+                        floatText.spawn(this.x,this.y-12,"+"+gain,"#f1c40f",12);
+                    }
                     this.cooldown=this.rate;
                 }
 
@@ -2518,6 +2570,68 @@ function startTowerDefense(){
 
     shop.appendChild(title);
 
+    const difficultyLabel=document.createElement("div");
+    difficultyLabel.textContent="DIFFICULTY";
+    Object.assign(difficultyLabel.style,{
+        color:"#dfeefc",
+        fontSize:"12px",
+        fontWeight:"bold",
+        letterSpacing:"1px",
+        marginTop:"5px",
+        marginBottom:"2px",
+        opacity:"0.9"
+    });
+    shop.appendChild(difficultyLabel);
+
+    const diffButtons=[];
+    function syncDifficultyButtons(){
+        for(const btn of diffButtons){
+            const isActive=btn.dataset.mode===difficulty;
+            btn.style.background=isActive?
+                "linear-gradient(135deg,#f1c40f,#e67e22)":
+                "linear-gradient(135deg,rgba(255,255,255,.08),rgba(0,0,0,.38))";
+            btn.style.border=isActive?
+                "1px solid rgba(255,255,255,.8)":
+                "1px solid rgba(255,255,255,.18)";
+            btn.style.transform=isActive?"scale(1.02)":"scale(1)";
+        }
+    }
+
+    function resetWaveProgress(){
+        waveNumber=1;
+        enemiesThisWave=0;
+        waveTarget=10;
+    }
+
+    for(const key of Object.keys(DIFFICULTY_SETTINGS)){
+        const btn=document.createElement("button");
+        const cfg=DIFFICULTY_SETTINGS[key];
+        btn.dataset.mode=key;
+        btn.textContent=cfg.label+"  ▸  $MAX "+cfg.coinCap;
+        Object.assign(btn.style,{
+            background:"linear-gradient(135deg,rgba(255,255,255,.08),rgba(0,0,0,.38))",
+            color:"#fff",
+            border:"1px solid rgba(255,255,255,.18)",
+            padding:"7px",
+            borderRadius:"7px",
+            cursor:"pointer",
+            fontWeight:"bold",
+            textShadow:"0 1px 2px #000",
+            boxShadow:"0 3px 8px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.25)"
+        });
+        btn.onclick=function(){
+            difficulty=key;
+            moneyCap=DIFFICULTY_SETTINGS[key].coinCap;
+            coins=Math.min(coins, moneyCap);
+            health=Math.min(health, DIFFICULTY_SETTINGS[key].startHealth);
+            resetWaveProgress();
+            syncDifficultyButtons();
+        };
+        shop.appendChild(btn);
+        diffButtons.push(btn);
+    }
+    syncDifficultyButtons();
+
 
     for(const key in TOWER_DATA){
 
@@ -2750,37 +2864,59 @@ function startTowerDefense(){
             difficultyTime+=.008;
             spawnTimer++;
 
+            const currentDifficulty=getDifficultySettings();
             const spawnRate=
                 Math.max(
-                    20,
-                    80-difficultyTime*1.2
+                    18,
+                    (80-difficultyTime*1.2)/currentDifficulty.spawnScale
                 );
 
             if(spawnTimer>spawnRate){
 
-                const pool=[
-                    "grunt",
-                    "fast",
-                    "tank",
-                    "regen"
-                ];
+                const bossInterval=
+                    currentDifficulty.bossWaveInterval;
+                const bossWave=
+                    waveNumber % bossInterval === 0;
 
                 if(
-                    difficultyTime>30 &&
-                    Math.random()<.08
+                    bossWave &&
+                    enemiesThisWave===0
                 ){
-                    pool.push("boss");
+                    floatText.spawn(
+                        canvas.width*.5,
+                        90,
+                        "BOSS WAVE!",
+                        "#ff6b6b",
+                        22
+                    );
                 }
 
+                const spawnType=
+                    bossWave ? "boss" : [
+                        "grunt",
+                        "fast",
+                        "tank",
+                        "regen"
+                    ][
+                        Math.floor(
+                            Math.random()*4
+                        )
+                    ];
+
                 enemies.push(
-                    new Enemy(
-                        pool[
-                            Math.floor(
-                                Math.random()*pool.length
-                            )
-                        ]
-                    )
+                    new Enemy(spawnType)
                 );
+
+                enemiesThisWave++;
+
+                if(enemiesThisWave>=waveTarget){
+                    waveNumber++;
+                    enemiesThisWave=0;
+                    waveTarget=Math.max(
+                        8,
+                        10+waveNumber*2
+                    );
+                }
 
                 spawnTimer=0;
             }
@@ -2803,8 +2939,8 @@ function startTowerDefense(){
 
             if(enemy.hp<=0){
 
-                coins+=enemy.reward;
-                floatText.spawn(enemy.x,enemy.y-10,"+"+enemy.reward,"#f1c40f",14);
+                const gain=addCoins(enemy.reward);
+                floatText.spawn(enemy.x,enemy.y-10,"+"+gain,"#f1c40f",14);
 
                 enemies.splice(i,1);
                 continue;
@@ -2884,7 +3020,7 @@ function startTowerDefense(){
         ctx.font="bold 19px Arial";
 
         ctx.fillText(
-            "💰 Coins: "+Math.floor(coins),
+            "💰 Coins: "+Math.floor(coins)+" / "+moneyCap,
             22,
             38
         );
@@ -2911,7 +3047,7 @@ function startTowerDefense(){
         ctx.fillStyle="#aaa";
 
         ctx.fillText(
-            "Tap the field to place",
+            "Wave: "+waveNumber+"  |  Diff: "+getDifficultySettings().label+"  |  Cap: "+moneyCap,
             22,
             112
         );
