@@ -11,7 +11,7 @@ let currentCleanup = null;
 
 const SITE_ANNOUNCEMENT={
     title:"Current Version: v2.72",
-    text:"allot of graphics changes, new 2 player games, MASS WAVE UPDATES.",
+    text:"allot of graphics changes, new 2 player games, bug fixes, MASS WAVE UPDATES.",
     accent:"#67e8f9"
 };
 
@@ -873,19 +873,31 @@ function startWavePro(){
     let curRot=0;
     let curRot2=0;
     let animationId;
+    let difficulty="NORMAL";
+    let corridorGap=285;
+    let corridorStep=105;
 
 
     function reset(mode){
 
         gameMode=mode;
 
+        const settings={
+            EASY:{speedX:360,speedY:360,gap:345,step:55},
+            NORMAL:{speedX:450,speedY:450,gap:285,step:105},
+            HARD:{speedX:540,speedY:540,gap:235,step:145}
+        };
+        const selected=mode==="DUAL"?settings.EASY:settings[difficulty];
+        corridorGap=selected.gap;
+        corridorStep=selected.step;
+
         const cy=canvas.height/2;
 
         wave={
             x:canvas.width*.25,
             y:cy,
-            speedY:450,
-            speedX:450
+            speedY:selected.speedY,
+            speedX:selected.speedX
         };
 
         trail=[];
@@ -900,8 +912,8 @@ function startWavePro(){
             wave2={
                 x:canvas.width*.25,
                 y:cy,
-                speedY:450,
-                speedX:450
+                speedY:settings.EASY.speedY,
+                speedX:settings.EASY.speedX
             };
 
             trail2=[];
@@ -945,7 +957,15 @@ function startWavePro(){
 
             const cy=canvas.height/2;
 
-            if(y>cy-80 && y<cy-30){
+            if(y>cy-174 && y<cy-144){
+                if(e.clientX<canvas.width/2-42){
+                    difficulty="EASY";
+                }else if(e.clientX>canvas.width/2+42){
+                    difficulty="HARD";
+                }else{
+                    difficulty="NORMAL";
+                }
+            }else if(y>cy-80 && y<cy-30){
                 reset("REGULAR");
             }else if(y>cy && y<cy+50){
                 reset("DUAL");
@@ -1087,6 +1107,30 @@ function startWavePro(){
                 canvas.width/2,
                 canvas.height/2-120
             );
+
+            ctx.shadowBlur=0;
+            ctx.fillStyle="#9fe8ff";
+            ctx.font="bold 14px Arial";
+            ctx.fillText("DIFFICULTY",canvas.width/2,canvas.height/2-188);
+
+            const difficultyButtons=[
+                ["EASY","#54e38e",-90],
+                ["NORMAL","#62d9ff",0],
+                ["HARD","#ff6685",90]
+            ];
+
+            for(const [text,color,offset] of difficultyButtons){
+                const bx=canvas.width/2-42+offset;
+                const by=canvas.height/2-174;
+                ctx.fillStyle=difficulty===text?color:"rgba(255,255,255,.14)";
+                ctx.fillRect(bx,by,84,30);
+                ctx.strokeStyle=difficulty===text?"#fff":"rgba(255,255,255,.25)";
+                ctx.lineWidth=2;
+                ctx.strokeRect(bx,by,84,30);
+                ctx.fillStyle=difficulty===text?"#00151c":"#c7e9f5";
+                ctx.font="bold 12px Arial";
+                ctx.fillText(text,bx+42,by+20);
+            }
 
             ctx.shadowBlur=0;
 
@@ -1415,7 +1459,6 @@ function startWavePro(){
         const segmentWidth=70;
         const minCenter=gameMode==="DUAL"?150:110;
         const maxCenter=gameMode==="DUAL"?canvas.height-150:canvas.height-110;
-        const corridorGap=gameMode==="DUAL"?310:285;
 
         while(obstacles.length<18){
             const previous=obstacles[obstacles.length-1];
@@ -1424,7 +1467,7 @@ function startWavePro(){
                 minCenter,
                 Math.min(
                     maxCenter,
-                    previousCenter+(Math.random()-.5)*(gameMode==="DUAL"?55:105)
+                    previousCenter+(Math.random()-.5)*(gameMode==="DUAL"?55:corridorStep)
                 )
             );
             obstacles.push({
