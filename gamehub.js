@@ -10,8 +10,8 @@ javascript:(function(){
 let currentCleanup = null;
 
 const SITE_ANNOUNCEMENT={
-    title:"Current Version: v2.70",
-    text:"more 2 player games, bug fixes (yippe) also rocket tag is like better because dash, flare run has double jump now, uh graphics update for flappy bird, wave, and asteroids",
+    title:"Current Version: v2.72",
+    text:"allot of graphics changes, new 2 player games, MASS WAVE UPDATES.",
     accent:"#67e8f9"
 };
 
@@ -1413,16 +1413,19 @@ function startWavePro(){
 
 
         const segmentWidth=70;
-        const minCenter=90;
-        const maxCenter=canvas.height-90;
-        const corridorGap=gameMode==="DUAL"?185:205;
+        const minCenter=gameMode==="DUAL"?150:110;
+        const maxCenter=gameMode==="DUAL"?canvas.height-150:canvas.height-110;
+        const corridorGap=gameMode==="DUAL"?310:285;
 
         while(obstacles.length<18){
             const previous=obstacles[obstacles.length-1];
             const previousCenter=previous?previous.center:canvas.height/2;
             const center=Math.max(
                 minCenter,
-                Math.min(maxCenter,previousCenter+(Math.random()-.5)*150)
+                Math.min(
+                    maxCenter,
+                    previousCenter+(Math.random()-.5)*(gameMode==="DUAL"?55:105)
+                )
             );
             obstacles.push({
                 x:previous?previous.x+segmentWidth:canvas.width,
@@ -1489,10 +1492,6 @@ function startWavePro(){
             ctx.beginPath();
             ctx.moveTo(points[0].x,points[0].y);
             for(const point of points)ctx.lineTo(point.x,point.y);
-            ctx.strokeStyle="#d7fbff";
-            ctx.lineWidth=3;
-            ctx.stroke();
-
             ctx.fillStyle="#8ff7ff";
             for(let i=0;i<points.length-1;i++){
                 const a=points[i];
@@ -1502,7 +1501,7 @@ function startWavePro(){
                 ctx.beginPath();
                 ctx.moveTo(midX-12,midY);
                 ctx.lineTo(midX+12,midY);
-                ctx.lineTo(midX,midY+(top?22:-22));
+                ctx.lineTo(midX,midY+(top?18:-18));
                 ctx.closePath();
                 ctx.fill();
             }
