@@ -11,7 +11,7 @@ javascript:(function(){
 let currentCleanup = null;
 
 const SITE_ANNOUNCEMENT={
-    title:"Current Version: v3.5",
+    title:"Current Version: v3.6",
     text:"uh you know. we added minecraft and stuff",
     accent:"#67e8f9"
 };
@@ -12697,7 +12697,7 @@ function startMinecraft3D(){
     function place(){const hit=blockHit();if(!hit)return;const selected=blockOrder[selectedIndex];if((inventory[selected]||0)<=0||!inside(hit.px,hit.py,hit.pz)||getVoxel(hit.px,hit.py,hit.pz))return;setVoxel(hit.px,hit.py,hit.pz,typeId(selected));inventory[selected]--;score=Math.max(0,score-1);meshDirty=true;message=`Placed ${selected}.`;}
     function craft(kind){if(inventory.wood<3||inventory.stone<3){message="Need 3 wood and 3 stone.";return;}inventory.wood-=3;inventory.stone-=3;inventory[kind]++;score+=18;message=`Crafted ${kind}.`;}
     function eat(){if(!inventory.food){message="No food.";return;}inventory.food--;player.food=clamp(player.food+30,0,100);player.hp=clamp(player.hp+3,0,20);message="Ate food.";}
-    function keyDown(e){const key=e.key.toLowerCase();keys[key]=true;if(key==="q")selectedIndex=(selectedIndex+blockOrder.length-1)%blockOrder.length;if(key==="e")selectedIndex=(selectedIndex+1)%blockOrder.length;if(key==="c")craft("pickaxe");if(key==="v")craft("axe");if(key==="h")eat();if(/^\d$/.test(key))selectedIndex=clamp(Number(key)-1,0,blockOrder.length-1);if((key===" "||key==="space")&&player.onGround){player.vy=5.2;player.onGround=false;}}
+    function keyDown(e){const key=e.key.toLowerCase();if(key==="f"){if(document.pointerLockElement===canvas)document.exitPointerLock();return;}keys[key]=true;if(key==="q")selectedIndex=(selectedIndex+blockOrder.length-1)%blockOrder.length;if(key==="e")selectedIndex=(selectedIndex+1)%blockOrder.length;if(key==="c")craft("pickaxe");if(key==="v")craft("axe");if(key==="h")eat();if(/^\d$/.test(key))selectedIndex=clamp(Number(key)-1,0,blockOrder.length-1);if((key===" "||key==="space")&&player.onGround){player.vy=5.2;player.onGround=false;}}
     function keyUp(e){keys[e.key.toLowerCase()]=false;}
     function updateMobs(dt,isNight){for(const mob of mobs){if(!mob.alive)continue;const dx=player.x-mob.x,dz=player.z-mob.z,dist=Math.hypot(dx,dz)||1;if(dist<(isNight?10:5)){mob.x+=dx/dist*(isNight?1.05:.45)*dt;mob.z+=dz/dist*(isNight?1.05:.45)*dt;if(dist<1.3){player.hp=Math.max(0,player.hp-8*dt);player.damageFlash=.5;}}mob.y=terrainHeight(Math.floor(mob.x),Math.floor(mob.z))+1.1;mob.walk+=dt*4;}}
     function update(dt){
@@ -12708,7 +12708,7 @@ function startMinecraft3D(){
     }
     function draw(){
         if(meshDirty)rebuildMesh();const day=(Math.sin(worldTime*.16)+1)/2,isNight=day<.4;gl.viewport(0,0,canvas.width,canvas.height);gl.clearColor(.04+.42*day,.07+.6*day,.16+.72*day,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(program);gl.uniformMatrix4fv(projectionLocation,false,perspective(Math.PI/3,canvas.width/canvas.height,.05,100));gl.uniformMatrix4fv(viewLocation,false,viewMatrix());gl.uniform1f(dayLocation,.38+day*.62);gl.bindBuffer(gl.ARRAY_BUFFER,positionBuffer);gl.enableVertexAttribArray(positionLocation);gl.vertexAttribPointer(positionLocation,3,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,colorBuffer);gl.enableVertexAttribArray(colorLocation);gl.vertexAttribPointer(colorLocation,3,gl.FLOAT,false,0,0);gl.drawArrays(gl.TRIANGLES,0,vertexCount);
-        const selected=blockOrder[selectedIndex];ui.innerHTML=`🧱 REAL 3D MINECRAFT<br><small>WASD move • mouse look • Shift sprint • Space jump • Left mine • Right place • Q/E hotbar</small><br><b>${isNight?"Night":"Day"}</b> • HP ${Math.round(player.hp)} • Food ${Math.round(player.food)} • ${selected.toUpperCase()} x${inventory[selected]||0}<br><small>C craft pickaxe • V craft axe • H eat • ${message}</small>`;if(dead)ui.innerHTML+=`<div style="font-size:26px;color:#7dd3fc;margin-top:12px">${score>=goal?"WORLD CLEARED":"YOU DIED"}</div><small>Click to restart</small>`;
+        const selected=blockOrder[selectedIndex],mouseStatus=document.pointerLockElement===canvas?"Mouse locked":"Click game to lock mouse";ui.innerHTML=`🧱 REAL 3D MINECRAFT<br><small>WASD move • mouse look • Shift sprint • Space jump • Left mine • Right place • Q/E hotbar</small><br><b>${isNight?"Night":"Day"}</b> • HP ${Math.round(player.hp)} • Food ${Math.round(player.food)} • ${selected.toUpperCase()} x${inventory[selected]||0}<br><small>${mouseStatus} • Press F to unlock • C craft pickaxe • V craft axe • H eat • ${message}</small>`;if(dead)ui.innerHTML+=`<div style="font-size:26px;color:#7dd3fc;margin-top:12px">${score>=goal?"WORLD CLEARED":"YOU DIED"}</div><small>Click to restart</small>`;
     }
     function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
     function loop(ts){const dt=Math.min((ts-lastTime)/1000,.04);lastTime=ts;if(!paused){update(dt);draw();}animationId=requestAnimationFrame(loop);}
