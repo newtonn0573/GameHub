@@ -11,7 +11,7 @@ javascript:(function(){
 let currentCleanup = null;
 
 const SITE_ANNOUNCEMENT={
-    title:"Current Version: v3.6",
+    title:"Current Version: v3.7",
     text:"uh you know. we added minecraft and stuff",
     accent:"#67e8f9"
 };
@@ -12595,6 +12595,9 @@ function startMinecraft3D(){
     crosshair.textContent="+";
     Object.assign(crosshair.style,{position:"fixed",left:"50%",top:"50%",transform:"translate(-50%,-54%)",zIndex:"100001",color:"rgba(255,255,255,.9)",font:"bold 26px monospace",textShadow:"0 1px 3px #000",pointerEvents:"none"});
     document.body.appendChild(crosshair);
+    const hotbar=document.createElement("div");
+    Object.assign(hotbar.style,{position:"fixed",left:"50%",bottom:"18px",transform:"translateX(-50%)",zIndex:"100002",display:"flex",gap:"4px",padding:"6px",background:"rgba(18,18,18,.82)",border:"2px solid rgba(255,255,255,.35)",borderRadius:"4px",pointerEvents:"none"});
+    document.body.appendChild(hotbar);
 
     const worldSize=28,worldHeight=12;
     const blockTypes={air:{color:[0,0,0]},grass:{color:[.34,.72,.23]},dirt:{color:[.45,.27,.13]},stone:{color:[.48,.51,.56]},sand:{color:[.82,.67,.36]},wood:{color:[.58,.32,.13]},leaves:{color:[.16,.59,.27]},ore:{color:[.82,.58,.09]},brick:{color:[.63,.22,.14]},glass:{color:[.42,.78,.9]}};
@@ -12697,26 +12700,29 @@ function startMinecraft3D(){
     function place(){const hit=blockHit();if(!hit)return;const selected=blockOrder[selectedIndex];if((inventory[selected]||0)<=0||!inside(hit.px,hit.py,hit.pz)||getVoxel(hit.px,hit.py,hit.pz))return;setVoxel(hit.px,hit.py,hit.pz,typeId(selected));inventory[selected]--;score=Math.max(0,score-1);meshDirty=true;message=`Placed ${selected}.`;}
     function craft(kind){if(inventory.wood<3||inventory.stone<3){message="Need 3 wood and 3 stone.";return;}inventory.wood-=3;inventory.stone-=3;inventory[kind]++;score+=18;message=`Crafted ${kind}.`;}
     function eat(){if(!inventory.food){message="No food.";return;}inventory.food--;player.food=clamp(player.food+30,0,100);player.hp=clamp(player.hp+3,0,20);message="Ate food.";}
-    function keyDown(e){const key=e.key.toLowerCase();if(key==="f"){if(document.pointerLockElement===canvas)document.exitPointerLock();return;}keys[key]=true;if(key==="q")selectedIndex=(selectedIndex+blockOrder.length-1)%blockOrder.length;if(key==="e")selectedIndex=(selectedIndex+1)%blockOrder.length;if(key==="c")craft("pickaxe");if(key==="v")craft("axe");if(key==="h")eat();if(/^\d$/.test(key))selectedIndex=clamp(Number(key)-1,0,blockOrder.length-1);if((key===" "||key==="space")&&player.onGround){player.vy=5.2;player.onGround=false;}}
+    function keyDown(e){const key=e.key.toLowerCase();if(key==="f"){if(document.pointerLockElement===canvas)document.exitPointerLock();return;}if(["arrowleft","arrowright","arrowup","arrowdown"," "].includes(key))e.preventDefault();keys[key]=true;if(key==="q")selectedIndex=(selectedIndex+blockOrder.length-1)%blockOrder.length;if(key==="e")selectedIndex=(selectedIndex+1)%blockOrder.length;if(key==="c")craft("pickaxe");if(key==="v")craft("axe");if(key==="h")eat();if(/^\d$/.test(key))selectedIndex=clamp(Number(key)-1,0,blockOrder.length-1);if((key===" "||key==="space")&&player.onGround){player.vy=5.2;player.onGround=false;}}
     function keyUp(e){keys[e.key.toLowerCase()]=false;}
     function updateMobs(dt,isNight){for(const mob of mobs){if(!mob.alive)continue;const dx=player.x-mob.x,dz=player.z-mob.z,dist=Math.hypot(dx,dz)||1;if(dist<(isNight?10:5)){mob.x+=dx/dist*(isNight?1.05:.45)*dt;mob.z+=dz/dist*(isNight?1.05:.45)*dt;if(dist<1.3){player.hp=Math.max(0,player.hp-8*dt);player.damageFlash=.5;}}mob.y=terrainHeight(Math.floor(mob.x),Math.floor(mob.z))+1.1;mob.walk+=dt*4;}}
     function update(dt){
         if(dead||paused)return;worldTime+=dt;player.food=Math.max(0,player.food-1.2*dt);if(player.food<=0)player.hp=Math.max(0,player.hp-3*dt);const day=(Math.sin(worldTime*.16)+1)/2,isNight=day<.4;
+        player.yaw += ((keys.arrowright?1:0)-(keys.arrowleft?1:0))*1.8*dt;
+        player.pitch = clamp(player.pitch + ((keys.arrowdown?1:0)-(keys.arrowup?1:0))*1.4*dt,-1.45,1.45);
         const forward={x:Math.cos(player.yaw),z:Math.sin(player.yaw)},right={x:-forward.z,z:forward.x};let mx=(keys.d?1:0)-(keys.a?1:0),mz=(keys.w?1:0)-(keys.s?1:0),length=Math.hypot(mx,mz)||1,speed=keys.shift?5:3;
         const nx=player.x+(forward.x*mz+right.x*mx)/length*speed*dt,nz=player.z+(forward.z*mz+right.z*mx)/length*speed*dt;if(nx>.5&&nx<worldSize-.5&&!getVoxel(Math.floor(nx),Math.floor(player.y),Math.floor(player.z)))player.x=nx;if(nz>.5&&nz<worldSize-.5&&!getVoxel(Math.floor(player.x),Math.floor(player.y),Math.floor(nz)))player.z=nz;
         player.vy-=12*dt;player.y+=player.vy*dt;const ground=terrainHeight(Math.floor(player.x),Math.floor(player.z))+1.7;if(player.y<=ground){player.y=ground;player.vy=0;player.onGround=true;}else player.onGround=false;player.damageFlash=Math.max(0,player.damageFlash-dt);updateMobs(dt,isNight);if(player.hp<=0||score>=goal)dead=true;
     }
     function draw(){
         if(meshDirty)rebuildMesh();const day=(Math.sin(worldTime*.16)+1)/2,isNight=day<.4;gl.viewport(0,0,canvas.width,canvas.height);gl.clearColor(.04+.42*day,.07+.6*day,.16+.72*day,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(program);gl.uniformMatrix4fv(projectionLocation,false,perspective(Math.PI/3,canvas.width/canvas.height,.05,100));gl.uniformMatrix4fv(viewLocation,false,viewMatrix());gl.uniform1f(dayLocation,.38+day*.62);gl.bindBuffer(gl.ARRAY_BUFFER,positionBuffer);gl.enableVertexAttribArray(positionLocation);gl.vertexAttribPointer(positionLocation,3,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,colorBuffer);gl.enableVertexAttribArray(colorLocation);gl.vertexAttribPointer(colorLocation,3,gl.FLOAT,false,0,0);gl.drawArrays(gl.TRIANGLES,0,vertexCount);
-        const selected=blockOrder[selectedIndex],mouseStatus=document.pointerLockElement===canvas?"Mouse locked":"Click game to lock mouse";ui.innerHTML=`🧱 REAL 3D MINECRAFT<br><small>WASD move • mouse look • Shift sprint • Space jump • Left mine • Right place • Q/E hotbar</small><br><b>${isNight?"Night":"Day"}</b> • HP ${Math.round(player.hp)} • Food ${Math.round(player.food)} • ${selected.toUpperCase()} x${inventory[selected]||0}<br><small>${mouseStatus} • Press F to unlock • C craft pickaxe • V craft axe • H eat • ${message}</small>`;if(dead)ui.innerHTML+=`<div style="font-size:26px;color:#7dd3fc;margin-top:12px">${score>=goal?"WORLD CLEARED":"YOU DIED"}</div><small>Click to restart</small>`;
+        const selected=blockOrder[selectedIndex],mouseStatus=document.pointerLockElement===canvas?"Mouse locked":"Click game to lock mouse";ui.innerHTML=`🧱 REAL 3D MINECRAFT<br><small>WASD move • Arrow keys camera • mouse look • Shift sprint • Space jump • Left mine • Right place • Q/E hotbar</small><br><b>${isNight?"Night":"Day"}</b> • HP ${Math.round(player.hp)} • Food ${Math.round(player.food)} • ${selected.toUpperCase()} x${inventory[selected]||0}<br><small>${mouseStatus} • Press F to unlock • C craft pickaxe • V craft axe • H eat • ${message}</small>`;
+        hotbar.innerHTML=blockOrder.map((name,index)=>`<div style="width:48px;height:48px;border:2px solid ${index===selectedIndex?"#fff":"#555"};background:rgba(35,35,35,.9);box-sizing:border-box;position:relative;color:#fff;font:12px Arial;text-align:center"><div style="width:26px;height:26px;margin:4px auto 1px;background:${name==="grass"?"#55a83b":name==="dirt"?"#754522":name==="stone"?"#858b94":name==="sand"?"#d9b86a":name==="wood"?"#a96b32":name==="leaves"?"#35a85b":name==="ore"?"#dca934":name==="brick"?"#b45f44":"#8fd3ef"};border:1px solid rgba(255,255,255,.45)">${index+1}</div><b>${inventory[name]||0}</b></div>`).join("");if(dead)ui.innerHTML+=`<div style="font-size:26px;color:#7dd3fc;margin-top:12px">${score>=goal?"WORLD CLEARED":"YOU DIED"}</div><small>Click to restart</small>`;
     }
     function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
     function loop(ts){const dt=Math.min((ts-lastTime)/1000,.04);lastTime=ts;if(!paused){update(dt);draw();}animationId=requestAnimationFrame(loop);}
-    function pointerDown(e){if(dead){resetRun();return;}if(document.pointerLockElement!==canvas){canvas.requestPointerLock?.();return;}if(e.button===0)mine();if(e.button===2)place();}
+    function pointerDown(e){if(dead){resetRun();return;}if(document.pointerLockElement!==canvas){canvas.focus();canvas.requestPointerLock?.();return;}if(e.button===0)mine();if(e.button===2)place();}
     function pointerMove(e){if(document.pointerLockElement===canvas&&!paused&&!dead){player.yaw-=e.movementX*.0025;player.pitch=clamp(player.pitch-e.movementY*.0025,-1.45,1.45);}}
     const contextMenu=e=>e.preventDefault();
     addEventListener("resize",resize);addEventListener("keydown",keyDown);addEventListener("keyup",keyUp);canvas.addEventListener("pointerdown",pointerDown);canvas.addEventListener("pointermove",pointerMove);canvas.addEventListener("contextmenu",contextMenu);back.onclick=()=>{cancelAnimationFrame(animationId);showMainMenu();};
-    currentCleanup=()=>{cancelAnimationFrame(animationId);removeEventListener("resize",resize);removeEventListener("keydown",keyDown);removeEventListener("keyup",keyUp);canvas.removeEventListener("pointerdown",pointerDown);canvas.removeEventListener("pointermove",pointerMove);canvas.removeEventListener("contextmenu",contextMenu);if(document.pointerLockElement===canvas)document.exitPointerLock();canvas.remove();back.remove();pause.remove();ui.remove();crosshair.remove();};
+    currentCleanup=()=>{cancelAnimationFrame(animationId);removeEventListener("resize",resize);removeEventListener("keydown",keyDown);removeEventListener("keyup",keyUp);canvas.removeEventListener("pointerdown",pointerDown);canvas.removeEventListener("pointermove",pointerMove);canvas.removeEventListener("contextmenu",contextMenu);if(document.pointerLockElement===canvas)document.exitPointerLock();canvas.remove();back.remove();pause.remove();ui.remove();crosshair.remove();hotbar.remove();};
     resize();setupGL();resetRun();animationId=requestAnimationFrame(loop);
 }
 /*
