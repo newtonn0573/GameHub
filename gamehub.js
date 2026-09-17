@@ -12600,9 +12600,9 @@ function startMinecraft3D(){
     document.body.appendChild(hotbar);
 
     const worldSize=28,worldHeight=12;
-    const blockTypes={air:{color:[0,0,0]},grass:{color:[.34,.72,.23]},dirt:{color:[.45,.27,.13]},stone:{color:[.48,.51,.56]},sand:{color:[.82,.67,.36]},wood:{color:[.58,.32,.13]},leaves:{color:[.16,.59,.27]},ore:{color:[.82,.58,.09]},brick:{color:[.63,.22,.14]},glass:{color:[.42,.78,.9]}};
-    const blockOrder=["grass","dirt","stone","sand","wood","leaves","ore","brick","glass"];
-    const inventory={grass:20,dirt:18,stone:16,sand:10,wood:12,leaves:10,ore:12,brick:4,glass:4,food:8,pickaxe:0,axe:0};
+    const blockTypes={air:{color:[0,0,0]},grass:{color:[.34,.72,.23]},dirt:{color:[.45,.27,.13]},stone:{color:[.48,.51,.56]},sand:{color:[.82,.67,.36]},wood:{color:[.58,.32,.13]},leaves:{color:[.16,.59,.27]},ore:{color:[.82,.58,.09]},brick:{color:[.63,.22,.14]},glass:{color:[.42,.78,.9]},wheat:{color:[.86,.7,.16]}};
+    const blockOrder=["grass","dirt","stone","sand","wood","leaves","ore","brick","glass","wheat"];
+    const inventory={grass:20,dirt:18,stone:16,sand:10,wood:12,leaves:10,ore:12,brick:4,glass:4,wheat:0,food:8,pickaxe:0,axe:0};
     const voxels=new Uint8Array(worldSize*worldHeight*worldSize);
     const player={x:14.5,y:6,z:14.5,yaw:.7,pitch:-.08,vy:0,onGround:false,hp:20,food:100,damageFlash:0};
     const keys={};
@@ -12615,7 +12615,7 @@ function startMinecraft3D(){
     function getVoxel(x,y,z){return inside(x,y,z)?voxels[index(x,y,z)]:0;}
     function setVoxel(x,y,z,value){if(inside(x,y,z))voxels[index(x,y,z)]=value;}
     function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
-    function terrainHeight(x,z){return clamp(Math.round(3+Math.sin((x+1)*.55)*1.4+Math.cos((z+2)*.62)*1.5+Math.sin((x+z)*.31)*1.1),2,7);}
+    function terrainHeight(x,z){return clamp(Math.round(4+Math.sin(x*.18+z*.12)*.45+Math.cos(z*.2)*.35),3,5);}
     function typeId(name){return blockOrder.indexOf(name)+1;}
     function blockName(id){return blockOrder[id-1]||"stone";}
 
@@ -12640,7 +12640,12 @@ function startMinecraft3D(){
                 setVoxel(x,y,z,typeId(type));
             }
         }
-        for(let i=0;i<18;i++)makeTree(2+Math.floor(Math.random()*(worldSize-4)),2+Math.floor(Math.random()*(worldSize-4)));
+        for(let i=0;i<6;i++)makeTree(2+Math.floor(Math.random()*(worldSize-4)),2+Math.floor(Math.random()*(worldSize-4)));
+        for(let i=0;i<32;i++){
+            const x=2+Math.floor(Math.random()*(worldSize-4)),z=2+Math.floor(Math.random()*(worldSize-4));
+            const ground=terrainHeight(x,z);
+            if(getVoxel(x,ground+1,z)===0)setVoxel(x,ground+1,z,typeId("wheat"));
+        }
         meshDirty=true;
     }
     function resetPlayer(){
@@ -12652,7 +12657,7 @@ function startMinecraft3D(){
     }
     function resetRun(){
         dead=false;score=0;selectedIndex=0;worldTime=0;message="Survive. Mine. Craft. Build.";
-        inventory.grass=20;inventory.dirt=18;inventory.stone=16;inventory.sand=10;inventory.wood=12;inventory.leaves=10;inventory.ore=12;inventory.brick=4;inventory.glass=4;inventory.food=8;inventory.pickaxe=0;inventory.axe=0;
+        inventory.grass=20;inventory.dirt=18;inventory.stone=16;inventory.sand=10;inventory.wood=12;inventory.leaves=10;inventory.ore=12;inventory.brick=4;inventory.glass=4;inventory.wheat=0;inventory.food=8;inventory.pickaxe=0;inventory.axe=0;
         resetWorld();resetPlayer();resetMobs();
     }
 
@@ -12679,9 +12684,22 @@ function startMinecraft3D(){
             {n:[1,0,0],v:[1,0,1,1,0,0,1,1,0,1,1,1]},
             {n:[-1,0,0],v:[0,0,0,0,0,1,0,1,1,0,1,0]}
         ];
+        function addCube(x,y,z,width,height,depth,base){
+            for(const current of faces){
+                if(current.n[0]===0&&current.n[1]===0&&current.n[2]===0)continue;
+                const v=current.v,vertices=[];
+                for(let i=0;i<v.length;i+=3)vertices.push(x+v[i]*width,y+v[i+1]*height,z+v[i+2]*depth);
+                face(vertices,current.n,base,positions,colors);
+            }
+        }
         for(let y=0;y<worldHeight;y++)for(let z=0;z<worldSize;z++)for(let x=0;x<worldSize;x++){
             const id=getVoxel(x,y,z);if(!id)continue;const base=blockTypes[blockName(id)].color;
             for(const current of faces){if(getVoxel(x+current.n[0],y+current.n[1],z+current.n[2]))continue;const v=current.v;const vertices=[];for(let i=0;i<v.length;i+=3)vertices.push(x+v[i],y+v[i+1],z+v[i+2]);face(vertices,current.n,base,positions,colors);}
+        }
+        for(const mob of mobs){
+            if(!mob.alive)continue;
+            addCube(mob.x-.35,mob.y-.7,mob.z-.25,.7,.7,.5,[.35,.65,.55]);
+            addCube(mob.x-.28,mob.y,mob.z-.22,.56,.45,.44,[.25,.8,.65]);
         }
         vertexCount=positions.length/3;gl.bindBuffer(gl.ARRAY_BUFFER,positionBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(positions),gl.STATIC_DRAW);gl.bindBuffer(gl.ARRAY_BUFFER,colorBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(colors),gl.STATIC_DRAW);meshDirty=false;
     }
@@ -12696,20 +12714,20 @@ function startMinecraft3D(){
         for(let distance=.15;distance<maxDistance;distance+=.035){const x=Math.floor(player.x+direction.x*distance),y=Math.floor(player.y+direction.y*distance),z=Math.floor(player.z+direction.z*distance);if(getVoxel(x,y,z))return{x,y,z,px:Math.floor(player.x+direction.x*(distance-.04)),py:Math.floor(player.y+direction.y*(distance-.04)),pz:Math.floor(player.z+direction.z*(distance-.04))};}
         return null;
     }
-    function mine(){const hit=blockHit();if(!hit)return;const id=getVoxel(hit.x,hit.y,hit.z),name=blockName(id);setVoxel(hit.x,hit.y,hit.z,0);inventory[name]=(inventory[name]||0)+1;score+=name==="ore"?20:7;meshDirty=true;message=`Mined ${name}.`;}
+    function mine(){const hit=blockHit();if(!hit)return;const id=getVoxel(hit.x,hit.y,hit.z),name=blockName(id);setVoxel(hit.x,hit.y,hit.z,0);if(name==="wheat"){inventory.food=(inventory.food||0)+2;score+=12;message="Harvested wheat: +2 food.";}else{inventory[name]=(inventory[name]||0)+1;score+=name==="ore"?20:7;message=`Mined ${name}.`;}meshDirty=true;}
     function place(){const hit=blockHit();if(!hit)return;const selected=blockOrder[selectedIndex];if((inventory[selected]||0)<=0||!inside(hit.px,hit.py,hit.pz)||getVoxel(hit.px,hit.py,hit.pz))return;setVoxel(hit.px,hit.py,hit.pz,typeId(selected));inventory[selected]--;score=Math.max(0,score-1);meshDirty=true;message=`Placed ${selected}.`;}
     function craft(kind){if(inventory.wood<3||inventory.stone<3){message="Need 3 wood and 3 stone.";return;}inventory.wood-=3;inventory.stone-=3;inventory[kind]++;score+=18;message=`Crafted ${kind}.`;}
     function eat(){if(!inventory.food){message="No food.";return;}inventory.food--;player.food=clamp(player.food+30,0,100);player.hp=clamp(player.hp+3,0,20);message="Ate food.";}
     function keyDown(e){const key=e.key.toLowerCase();if(key==="f"){if(document.pointerLockElement===canvas)document.exitPointerLock();return;}if(["arrowleft","arrowright","arrowup","arrowdown"," "].includes(key))e.preventDefault();keys[key]=true;if(key==="q"&&!e.repeat)mine();if(key==="e"&&!e.repeat)place();if(key==="c")craft("pickaxe");if(key==="v")craft("axe");if(key==="h")eat();if(/^\d$/.test(key))selectedIndex=clamp(Number(key)-1,0,blockOrder.length-1);if((key===" "||key==="space")&&player.onGround){player.vy=5.2;player.onGround=false;}}
     function keyUp(e){keys[e.key.toLowerCase()]=false;}
-    function updateMobs(dt,isNight){for(const mob of mobs){if(!mob.alive)continue;const dx=player.x-mob.x,dz=player.z-mob.z,dist=Math.hypot(dx,dz)||1;if(dist<(isNight?10:5)){mob.x+=dx/dist*(isNight?1.05:.45)*dt;mob.z+=dz/dist*(isNight?1.05:.45)*dt;if(dist<1.3){player.hp=Math.max(0,player.hp-8*dt);player.damageFlash=.5;}}mob.y=terrainHeight(Math.floor(mob.x),Math.floor(mob.z))+1.1;mob.walk+=dt*4;}}
+    function updateMobs(dt){for(const mob of mobs){if(!mob.alive)continue;const dx=player.x-mob.x,dz=player.z-mob.z,dist=Math.hypot(dx,dz)||1;if(dist<5){mob.x+=dx/dist*.45*dt;mob.z+=dz/dist*.45*dt;if(dist<1.3){player.hp=Math.max(0,player.hp-8*dt);player.damageFlash=.5;}}mob.y=terrainHeight(Math.floor(mob.x),Math.floor(mob.z))+1.1;mob.walk+=dt*4;}meshDirty=true;}
     function update(dt){
-        if(dead||paused)return;worldTime+=dt;player.food=Math.max(0,player.food-1.2*dt);if(player.food<=0)player.hp=Math.max(0,player.hp-3*dt);const day=(Math.sin(worldTime*.16)+1)/2,isNight=day<.4;
+        if(dead||paused)return;worldTime+=dt;player.food=Math.max(0,player.food-1.2*dt);if(player.food<=0)player.hp=Math.max(0,player.hp-3*dt);const day=(Math.sin(worldTime*.16)+1)/2;
         player.yaw += ((keys.arrowright?1:0)-(keys.arrowleft?1:0))*1.8*dt;
         player.pitch = clamp(player.pitch + ((keys.arrowdown?1:0)-(keys.arrowup?1:0))*1.4*dt,-1.45,1.45);
         const forward={x:Math.cos(player.yaw),z:Math.sin(player.yaw)},right={x:-forward.z,z:forward.x};let mx=(keys.d?1:0)-(keys.a?1:0),mz=(keys.w?1:0)-(keys.s?1:0),length=Math.hypot(mx,mz)||1,speed=keys.shift?5:3;
         const nx=player.x+(forward.x*mz+right.x*mx)/length*speed*dt,nz=player.z+(forward.z*mz+right.z*mx)/length*speed*dt;if(nx>.5&&nx<worldSize-.5&&!getVoxel(Math.floor(nx),Math.floor(player.y),Math.floor(player.z)))player.x=nx;if(nz>.5&&nz<worldSize-.5&&!getVoxel(Math.floor(player.x),Math.floor(player.y),Math.floor(nz)))player.z=nz;
-        player.vy-=12*dt;player.y+=player.vy*dt;const ground=terrainHeight(Math.floor(player.x),Math.floor(player.z))+1.7;if(player.y<=ground){player.y=ground;player.vy=0;player.onGround=true;}else player.onGround=false;player.damageFlash=Math.max(0,player.damageFlash-dt);updateMobs(dt,isNight);if(player.hp<=0||score>=goal)dead=true;
+        player.vy-=12*dt;player.y+=player.vy*dt;const ground=terrainHeight(Math.floor(player.x),Math.floor(player.z))+1.7;if(player.y<=ground){player.y=ground;player.vy=0;player.onGround=true;}else player.onGround=false;player.damageFlash=Math.max(0,player.damageFlash-dt);updateMobs(dt);if(player.hp<=0||score>=goal)dead=true;
     }
     function draw(){
         if(meshDirty)rebuildMesh();const day=(Math.sin(worldTime*.16)+1)/2,isNight=day<.4;gl.viewport(0,0,canvas.width,canvas.height);gl.clearColor(.04+.42*day,.07+.6*day,.16+.72*day,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(program);gl.uniformMatrix4fv(projectionLocation,false,perspective(Math.PI/3,canvas.width/canvas.height,.05,100));gl.uniformMatrix4fv(viewLocation,false,viewMatrix());gl.uniform1f(dayLocation,.38+day*.62);gl.bindBuffer(gl.ARRAY_BUFFER,positionBuffer);gl.enableVertexAttribArray(positionLocation);gl.vertexAttribPointer(positionLocation,3,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,colorBuffer);gl.enableVertexAttribArray(colorLocation);gl.vertexAttribPointer(colorLocation,3,gl.FLOAT,false,0,0);gl.drawArrays(gl.TRIANGLES,0,vertexCount);
