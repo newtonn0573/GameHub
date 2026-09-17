@@ -5,13 +5,14 @@ javascript:(function(){
 // WAVE PRO + TOWER DEFENSE + RAGDOLL ARCHERS + SNAKE + RUNNER
 // FIXED RAGDOLL PHYSICS / STANDING JOINTS
 // 100% CODE DRAWN — NO EXTERNAL IMAGES
+// NOTE: if your gonna copy this code, please give credit to the original author (me) and don't remove the credits from the source code. thanks!
 // ============================================================
 
 let currentCleanup = null;
 
 const SITE_ANNOUNCEMENT={
-    title:"Current Version: v2.79",
-    text:"allot of graphics changes, new games, bug fixes, MASS WAVE AND TOWER DEFENSE UPDATES.",
+    title:"Current Version: v2.81",
+    text:"more games, MASS WAVE AND TOWER DEFENSE UPDATES. also the little thing where the 2x speed appeared in other games was removed.2",
     accent:"#67e8f9"
 };
 
@@ -691,6 +692,10 @@ function showMainMenu(){
         "🏎️  NEON DRIFT":"Thread through traffic, collect boosts, and finish the neon circuit.",
         "💠  CRYSTAL HUNT":"Collect every crystal while hostile drones close in around the arena.",
         "🎯  TARGET RUSH":"Hit moving targets before the timer expires and clear the range.",
+        "🌌  SKY SURFER":"Ride the air lanes, collect stars, and dodge incoming hazard drones.",
+        "🪐  AETHER DASH":"Sprint through the void, grab energy cores, and stay clear of the rift.",
+        "🔷  PRISM SHIFT":"Flip between lanes and survive the neon pattern until the board clears.",
+        "💣  BLAST LOOP":"Bounce through the loop, collect sparks, and avoid exploding walls.",
     };
 
     const GAME_LIST=[
@@ -733,7 +738,11 @@ function showMainMenu(){
         ["🔥  FLARE RUN","#fb7185",startFlareRun],
         ["🏎️  NEON DRIFT","#22d3ee",startNeonDrift],
         ["💠  CRYSTAL HUNT","#a3e635",startCrystalHunt],
-        ["🎯  TARGET RUSH","#facc15",startTargetRush]
+        ["🎯  TARGET RUSH","#facc15",startTargetRush],
+        ["🌌  SKY SURFER","#38bdf8",startSkySurfer],
+        ["🪐  AETHER DASH","#a78bfa",startAetherDash],
+        ["🔷  PRISM SHIFT","#67e8f9",startPrismShift],
+        ["💣  BLAST LOOP","#f97316",startBlastLoop]
     ];
 
     const singlePlayerGrid=makeSection("SINGLE PLAYER");
@@ -12555,6 +12564,68 @@ function startTargetRush(){
     function update(dt){if(ended)return;phase+=dt;time-=dt;if(time<=0){time=0;ended=true;won=score>=15;}for(const t of targets){t.x+=Math.cos(phase*2+t.y)*12*dt;t.y+=Math.sin(phase*1.7+t.x)*12*dt;t.life-=dt*.7;if(t.life<=0){t.life=1;t.x=50+Math.random()*(canvas.width-100);t.y=100+Math.random()*(canvas.height-190);}}}
     function draw(){ctx.fillStyle="#171005";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle="rgba(250,204,21,.08)";ctx.fillRect(30,80,canvas.width-60,canvas.height-120);ctx.strokeStyle="rgba(250,204,21,.35)";ctx.strokeRect(30,80,canvas.width-60,canvas.height-120);for(const t of targets){ctx.save();ctx.globalAlpha=.65+.35*t.life;ctx.shadowColor=t.color;ctx.shadowBlur=24;ctx.strokeStyle=t.color;ctx.lineWidth=5;ctx.beginPath();ctx.arc(t.x,t.y,t.r,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(t.x,t.y,t.r*.42,0,Math.PI*2);ctx.stroke();ctx.restore();}ctx.textAlign="center";ctx.fillStyle="#fff";ctx.font="900 38px Arial";ctx.fillText(score+" / 15",canvas.width/2,54);ctx.font="bold 18px Arial";ctx.fillStyle="#fef08a";ctx.fillText("TIME "+time.toFixed(1),canvas.width/2,82);ui.innerHTML="🎯 TARGET RUSH<br><small>Tap the moving targets before time runs out</small>";if(ended){ctx.fillStyle="rgba(0,0,0,.76)";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle=won?"#a3e635":"#fb7185";ctx.font="900 44px Arial";ctx.fillText(won?"RANGE CLEARED":"TIME UP",canvas.width/2,canvas.height/2-18);ctx.fillStyle="#fff";ctx.font="bold 18px Arial";ctx.fillText("Score: "+score+" • Tap to replay",canvas.width/2,canvas.height/2+24);}}
     function loop(ts){const dt=Math.min((ts-lastTime)/1000,.04);lastTime=ts;if(!paused){update(dt);draw();}animationId=requestAnimationFrame(loop);}back.onclick=()=>{cancelAnimationFrame(animationId);showMainMenu();};currentCleanup=()=>{cancelAnimationFrame(animationId);canvas.removeEventListener("pointerdown",pointerDown);canvas.remove();back.remove();pause.remove();ui.remove();};reset();animationId=requestAnimationFrame(loop);
+}
+
+// ============================================================
+// SKY SURFER
+// ============================================================
+
+function startSkySurfer(){
+    document.body.style.touchAction="none"; const canvas=document.createElement("canvas"),ctx=canvas.getContext("2d"); function resize(){canvas.width=innerWidth;canvas.height=innerHeight;} resize(); Object.assign(canvas.style,{position:"fixed",inset:"0",width:"100%",height:"100%",zIndex:"100000",touchAction:"none"}); document.body.appendChild(canvas);
+    const back=makeBackButton("sky-back"); const pause=makeArcadePauseButton("sky-pause",v=>paused=v); const ui=document.createElement("div"); Object.assign(ui.style,{position:"fixed",top:"12px",left:"12px",zIndex:"100002",background:"rgba(6,17,31,.9)",color:"#fff",padding:"10px 14px",borderRadius:"12px",fontFamily:"Arial,sans-serif",fontWeight:"bold",border:"1px solid #38bdf8"}); document.body.appendChild(ui);
+    let paused=false,dead=false,phase=0,score=0,animationId,lastTime=performance.now(),keys={},player={x:140,y:innerHeight/2,r:18},hazards=[],stars=[];
+    function reset(){dead=false;score=0;phase=0;player.x=140;player.y=innerHeight/2;hazards=[];stars=[];} function keyDown(e){keys[e.key]=true;} function keyUp(e){keys[e.key]=false;}
+    function spawnHazard(){hazards.push({x:canvas.width+40,y:50+Math.random()*(canvas.height-120),r:18+Math.random()*18,s:220+Math.random()*180});}
+    function spawnStar(){stars.push({x:canvas.width+50,y:60+Math.random()*(canvas.height-150),r:10+Math.random()*8});}
+    function update(dt){if(dead||paused)return;phase+=dt;score+=dt*10;if(keys.ArrowUp||keys.w)player.y-=320*dt;if(keys.ArrowDown||keys.s)player.y+=320*dt;player.y=Math.max(50,Math.min(canvas.height-50,player.y));if(Math.random()<dt*1.2)spawnHazard();if(Math.random()<dt*0.7)spawnStar();for(let i=hazards.length-1;i>=0;i--){const h=hazards[i];h.x-=h.s*dt;if(Math.hypot(player.x-h.x,player.y-h.y)<player.r+h.r){dead=true;} if(h.x<-60)hazards.splice(i,1);}for(let i=stars.length-1;i>=0;i--){const s=stars[i];s.x-=260*dt;if(Math.hypot(player.x-s.x,player.y-s.y)<player.r+s.r+6){score+=18;stars.splice(i,1);}else if(s.x<-40)stars.splice(i,1);}}
+    function draw(){drawGameAtmosphere(ctx,canvas,"#38bdf8",phase*24);for(const h of hazards){ctx.save();ctx.shadowColor="#fca5a5";ctx.shadowBlur=18;ctx.fillStyle="#fb7185";ctx.beginPath();ctx.arc(h.x,h.y,h.r,0,Math.PI*2);ctx.fill();ctx.restore();}for(const s of stars){ctx.save();ctx.shadowColor="#fef08a";ctx.shadowBlur=18;ctx.fillStyle="#fef08a";ctx.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3+Math.PI/2;const r=i%2?s.r:s.r*0.5;const px=s.x+Math.cos(a)*r,py=s.y+Math.sin(a)*r;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.closePath();ctx.fill();ctx.restore();}ctx.save();ctx.translate(player.x,player.y);ctx.shadowColor="#bae6fd";ctx.shadowBlur=28;ctx.fillStyle="#e0f2fe";ctx.beginPath();ctx.arc(0,0,18,0,Math.PI*2);ctx.fill();ctx.fillStyle="#38bdf8";ctx.fillRect(-6,-10,12,18);ctx.restore();ctx.textAlign="center";ctx.fillStyle="#fff";ctx.font="900 34px Arial";ctx.fillText(Math.floor(score),canvas.width/2,64);ui.innerHTML="🌌 SKY SURFER<br><small>W/S or ↑/↓ • Stay above the hazard drones</small>"; if(dead){ctx.fillStyle="rgba(0,0,0,.78)";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle="#67e8f9";ctx.font="900 48px Arial";ctx.fillText("YOU DIED!",canvas.width/2,canvas.height/2-18);ctx.font="bold 18px Arial";ctx.fillStyle="#fff";ctx.fillText("Tap to restart",canvas.width/2,canvas.height/2+24);}} 
+    function pointerDown(){if(dead){reset();}} canvas.addEventListener("pointerdown",pointerDown,{passive:true}); window.addEventListener("keydown",keyDown); window.addEventListener("keyup",keyUp); back.onclick=()=>{cancelAnimationFrame(animationId);showMainMenu();}; currentCleanup=()=>{cancelAnimationFrame(animationId);window.removeEventListener("keydown",keyDown);window.removeEventListener("keyup",keyUp);canvas.removeEventListener("pointerdown",pointerDown);canvas.remove();back.remove();pause.remove();ui.remove();}; reset(); function loop(ts){const dt=Math.min((ts-lastTime)/1000,.04);lastTime=ts;if(!paused){update(dt);draw();}animationId=requestAnimationFrame(loop);} animationId=requestAnimationFrame(loop);
+}
+
+// ============================================================
+// AETHER DASH
+// ============================================================
+
+function startAetherDash(){
+    document.body.style.touchAction="none"; const canvas=document.createElement("canvas"),ctx=canvas.getContext("2d"); function resize(){canvas.width=innerWidth;canvas.height=innerHeight;} resize(); Object.assign(canvas.style,{position:"fixed",inset:"0",width:"100%",height:"100%",zIndex:"100000",touchAction:"none"}); document.body.appendChild(canvas);
+    const back=makeBackButton("aether-back"); const pause=makeArcadePauseButton("aether-pause",v=>paused=v); const ui=document.createElement("div"); Object.assign(ui.style,{position:"fixed",top:"12px",left:"12px",zIndex:"100002",background:"rgba(11,8,30,.9)",color:"#fff",padding:"10px 14px",borderRadius:"12px",fontFamily:"Arial,sans-serif",fontWeight:"bold",border:"1px solid #a78bfa"}); document.body.appendChild(ui);
+    let paused=false,dead=false,score=0,phase=0,animationId,lastTime=performance.now(),keys={},player={x:140,y:innerHeight/2,r:18},blocks=[],cores=[];
+    function reset(){dead=false;score=0;phase=0;player.x=140;player.y=innerHeight/2;blocks=[];cores=[];} function keyDown(e){keys[e.key]=true;} function keyUp(e){keys[e.key]=false;}
+    function spawnBlock(){const gap=120+Math.random()*140;blocks.push({x:canvas.width+40,y:Math.random()*(canvas.height-220)+80,w:34+Math.random()*30,h:Math.random()*(canvas.height*0.52)+80,gap,hit:false});}
+    function spawnCore(){cores.push({x:canvas.width+40,y:80+Math.random()*(canvas.height-160),r:10+Math.random()*8});}
+    function update(dt){if(dead||paused)return;phase+=dt;score+=dt*15;if(keys.ArrowUp||keys.w)player.y-=320*dt;if(keys.ArrowDown||keys.s)player.y+=320*dt;player.y=Math.max(60,Math.min(canvas.height-60,player.y));if(Math.random()<dt*1.0)spawnBlock();if(Math.random()<dt*0.6)spawnCore();for(let i=blocks.length-1;i>=0;i--){const b=blocks[i];b.x-=300*dt;const nearest=player.y;const inWall=(player.x+player.r>b.x && player.x-player.r<b.x+b.w && (nearest< b.y || nearest> b.y+b.gap));if(inWall||Math.abs(player.y-b.y)<5)dead=true;if(b.x<-80)blocks.splice(i,1);}for(let i=cores.length-1;i>=0;i--){const c=cores[i];c.x-=260*dt;if(Math.hypot(player.x-c.x,player.y-c.y)<player.r+c.r+6){score+=28;cores.splice(i,1);}else if(c.x<-40)cores.splice(i,1);}}
+    function draw(){drawGameAtmosphere(ctx,canvas,"#a78bfa",phase*26);for(const b of blocks){ctx.fillStyle="rgba(196,181,253,.12)";ctx.fillRect(0,b.y,canvas.width,b.gap);ctx.fillStyle="rgba(167,139,250,.28)";ctx.fillRect(b.x,b.y,b.w,canvas.height-b.y);ctx.fillRect(b.x,b.y+b.gap,b.w,canvas.height-(b.y+b.gap));ctx.strokeStyle="rgba(196,181,253,.5)";ctx.lineWidth=3;ctx.strokeRect(b.x,b.y,b.w,canvas.height-b.y);ctx.strokeRect(b.x,b.y+b.gap,b.w,canvas.height-(b.y+b.gap));}for(const c of cores){ctx.save();ctx.shadowColor="#f5d0fe";ctx.shadowBlur=20;ctx.fillStyle="#f5d0fe";ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,Math.PI*2);ctx.fill();ctx.restore();}ctx.save();ctx.translate(player.x,player.y);ctx.shadowColor="#ddd6fe";ctx.shadowBlur=18;ctx.fillStyle="#f5f3ff";ctx.beginPath();ctx.arc(0,0,18,0,Math.PI*2);ctx.fill();ctx.fillStyle="#a78bfa";ctx.fillRect(-5,-10,10,20);ctx.restore();ctx.textAlign="center";ctx.fillStyle="#fff";ctx.font="900 34px Arial";ctx.fillText(Math.floor(score),canvas.width/2,64);ui.innerHTML="🪐 AETHER DASH<br><small>W/S or ↑/↓ • dodge the rift walls</small>"; if(dead){ctx.fillStyle="rgba(0,0,0,.78)";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle="#c4b5fd";ctx.font="900 48px Arial";ctx.fillText("YOU DIED!",canvas.width/2,canvas.height/2-18);ctx.font="bold 18px Arial";ctx.fillStyle="#fff";ctx.fillText("Tap to restart",canvas.width/2,canvas.height/2+24);}} 
+    function pointerDown(){if(dead){reset();}} canvas.addEventListener("pointerdown",pointerDown,{passive:true}); window.addEventListener("keydown",keyDown); window.addEventListener("keyup",keyUp); back.onclick=()=>{cancelAnimationFrame(animationId);showMainMenu();}; currentCleanup=()=>{cancelAnimationFrame(animationId);window.removeEventListener("keydown",keyDown);window.removeEventListener("keyup",keyUp);canvas.removeEventListener("pointerdown",pointerDown);canvas.remove();back.remove();pause.remove();ui.remove();}; reset(); function loop(ts){const dt=Math.min((ts-lastTime)/1000,.04);lastTime=ts;if(!paused){update(dt);draw();}animationId=requestAnimationFrame(loop);} animationId=requestAnimationFrame(loop);
+}
+
+// ============================================================
+// PRISM SHIFT
+// ============================================================
+
+function startPrismShift(){
+    document.body.style.touchAction="none"; const canvas=document.createElement("canvas"),ctx=canvas.getContext("2d"); function resize(){canvas.width=innerWidth;canvas.height=innerHeight;} resize(); Object.assign(canvas.style,{position:"fixed",inset:"0",width:"100%",height:"100%",zIndex:"100000",touchAction:"none"}); document.body.appendChild(canvas);
+    const back=makeBackButton("prism-back"); const pause=makeArcadePauseButton("prism-pause",v=>paused=v); const ui=document.createElement("div"); Object.assign(ui.style,{position:"fixed",top:"12px",left:"12px",zIndex:"100002",background:"rgba(6,23,31,.9)",color:"#fff",padding:"10px 14px",borderRadius:"12px",fontFamily:"Arial,sans-serif",fontWeight:"bold",border:"1px solid #67e8f9"}); document.body.appendChild(ui);
+    let paused=false,dead=false,phase=0,score=0,animationId,lastTime=performance.now(),keys={},player={lane:1},beams=[];
+    function reset(){dead=false;score=0;phase=0;player.lane=1;beams=[];for(let i=0;i<7;i++)beams.push({y:80+i*70,dir:Math.random()>0.5?1:-1,speed:80+Math.random()*120,lane:Math.floor(Math.random()*3)});} 
+    function laneX(value){return canvas.width/2+(value-1)*150;} function keyDown(e){if(e.key==="ArrowLeft"||e.key==="a")player.lane=Math.max(0,player.lane-1); if(e.key==="ArrowRight"||e.key==="d")player.lane=Math.min(2,player.lane+1);} 
+    function update(dt){if(dead||paused)return;phase+=dt;score+=dt*11;for(let i=beams.length-1;i>=0;i--){const b=beams[i];b.y+=b.speed*dt*b.dir; if(b.y<80||b.y>canvas.height-80)b.dir*=-1; if(Math.abs(b.y-(canvas.height-140))<50 && b.lane===player.lane){dead=true;}} if(Math.random()<dt*0.35){beams.push({y:60+Math.random()*(canvas.height-130),dir:Math.random()>0.5?1:-1,speed:80+Math.random()*120,lane:Math.floor(Math.random()*3)}); if(beams.length>18)beams.shift();}}
+    function draw(){drawGameAtmosphere(ctx,canvas,"#67e8f9",phase*28);ctx.strokeStyle="rgba(103,232,249,.3)";ctx.lineWidth=3;for(let i=0;i<3;i++){const x=laneX(i);ctx.beginPath();ctx.moveTo(x,60);ctx.lineTo(x,canvas.height-50);ctx.stroke();}for(const b of beams){ctx.beginPath();ctx.moveTo(laneX(b.lane)-30,b.y);ctx.lineTo(laneX(b.lane)+30,b.y);ctx.strokeStyle=(b.dir>0?"#22d3ee":"#f472b6");ctx.lineWidth=7;ctx.stroke();}ctx.save();const px=laneX(player.lane);ctx.shadowColor="#cffafe";ctx.shadowBlur=22;ctx.fillStyle="#e0f2fe";ctx.beginPath();ctx.arc(px,canvas.height-110,30,0,Math.PI*2);ctx.fill();ctx.fillStyle="#67e8f9";ctx.fillRect(px-12,canvas.height-150,24,40);ctx.restore();ctx.textAlign="center";ctx.fillStyle="#fff";ctx.font="900 34px Arial";ctx.fillText(Math.floor(score),canvas.width/2,64);ui.innerHTML="🔷 PRISM SHIFT<br><small>Use ←/→ or tap sides to dodge the wave beams</small>"; if(dead){ctx.fillStyle="rgba(0,0,0,.78)";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle="#67e8f9";ctx.font="900 48px Arial";ctx.fillText("YOU DIED!",canvas.width/2,canvas.height/2-18);ctx.font="bold 18px Arial";ctx.fillStyle="#fff";ctx.fillText("Tap to restart",canvas.width/2,canvas.height/2+24);}} 
+    function pointerDown(e){if(dead){reset();} else {const side=e.clientX<canvas.width/2? -1:1; player.lane = Math.max(0,Math.min(2,player.lane + (side<0?-1:1)));}} canvas.addEventListener("pointerdown",pointerDown,{passive:true}); window.addEventListener("keydown",keyDown); window.addEventListener("keyup",keyUp); back.onclick=()=>{cancelAnimationFrame(animationId);showMainMenu();}; currentCleanup=()=>{cancelAnimationFrame(animationId);window.removeEventListener("keydown",keyDown);window.removeEventListener("keyup",keyUp);canvas.removeEventListener("pointerdown",pointerDown);canvas.remove();back.remove();pause.remove();ui.remove();}; reset(); function loop(ts){const dt=Math.min((ts-lastTime)/1000,.04);lastTime=ts;if(!paused){update(dt);draw();}animationId=requestAnimationFrame(loop);} animationId=requestAnimationFrame(loop);
+}
+
+// ============================================================
+// BLAST LOOP
+// ============================================================
+
+function startBlastLoop(){
+    document.body.style.touchAction="none"; const canvas=document.createElement("canvas"),ctx=canvas.getContext("2d"); function resize(){canvas.width=innerWidth;canvas.height=innerHeight;} resize(); Object.assign(canvas.style,{position:"fixed",inset:"0",width:"100%",height:"100%",zIndex:"100000",touchAction:"none"}); document.body.appendChild(canvas);
+    const back=makeBackButton("blast-back"); const pause=makeArcadePauseButton("blast-pause",v=>paused=v); const ui=document.createElement("div"); Object.assign(ui.style,{position:"fixed",top:"12px",left:"12px",zIndex:"100002",background:"rgba(30,13,3,.9)",color:"#fff",padding:"10px 14px",borderRadius:"12px",fontFamily:"Arial,sans-serif",fontWeight:"bold",border:"1px solid #f97316"}); document.body.appendChild(ui);
+    let paused=false,dead=false,score=0,phase=0,animationId,lastTime=performance.now(),keys={},player={x:canvas.width/2,y:canvas.height-90,r:18},shards=[];
+    function reset(){dead=false;score=0;phase=0;player.x=canvas.width/2;player.y=canvas.height-90;shards=[];for(let i=0;i<10;i++)shards.push({x:60+Math.random()*(canvas.width-120),y:40+Math.random()*(canvas.height-200),r:12+Math.random()*14,vy:50+Math.random()*80});}
+    function keyDown(e){keys[e.key]=true;} function keyUp(e){keys[e.key]=false;}
+    function update(dt){if(dead||paused)return;phase+=dt;score+=dt*12;const dx=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0);const dy=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0);player.x=Math.max(26,Math.min(canvas.width-26,player.x+dx*260*dt));player.y=Math.max(50,Math.min(canvas.height-50,player.y+dy*260*dt));for(let i=shards.length-1;i>=0;i--){const s=shards[i];s.y+=s.vy*dt;if(s.y>canvas.height+30){s.y=-30;s.x=30+Math.random()*(canvas.width-60);}if(Math.hypot(player.x-s.x,player.y-s.y)<player.r+s.r+5){dead=true;}}}
+    function draw(){drawGameAtmosphere(ctx,canvas,"#f97316",phase*22);for(const s of shards){ctx.save();ctx.shadowColor="#fdba74";ctx.shadowBlur=18;ctx.fillStyle="#f97316";ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();ctx.restore();}ctx.save();ctx.translate(player.x,player.y);ctx.shadowColor="#fed7aa";ctx.shadowBlur=24;ctx.fillStyle="#fff7ed";ctx.beginPath();ctx.arc(0,0,18,0,Math.PI*2);ctx.fill();ctx.fillStyle="#f97316";ctx.fillRect(-6,-8,12,18);ctx.restore();ctx.textAlign="center";ctx.fillStyle="#fff";ctx.font="900 34px Arial";ctx.fillText(Math.floor(score),canvas.width/2,64);ui.innerHTML="💣 BLAST LOOP<br><small>Move with WASD or arrows • dodge the crystal shards</small>"; if(dead){ctx.fillStyle="rgba(0,0,0,.78)";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle="#fdba74";ctx.font="900 48px Arial";ctx.fillText("YOU DIED!",canvas.width/2,canvas.height/2-18);ctx.font="bold 18px Arial";ctx.fillStyle="#fff";ctx.fillText("Tap to restart",canvas.width/2,canvas.height/2+24);}} 
+    function pointerDown(){if(dead){reset();}} canvas.addEventListener("pointerdown",pointerDown,{passive:true}); window.addEventListener("keydown",keyDown); window.addEventListener("keyup",keyUp); back.onclick=()=>{cancelAnimationFrame(animationId);showMainMenu();}; currentCleanup=()=>{cancelAnimationFrame(animationId);window.removeEventListener("keydown",keyDown);window.removeEventListener("keyup",keyUp);canvas.removeEventListener("pointerdown",pointerDown);canvas.remove();back.remove();pause.remove();ui.remove();}; reset(); function loop(ts){const dt=Math.min((ts-lastTime)/1000,.04);lastTime=ts;if(!paused){update(dt);draw();}animationId=requestAnimationFrame(loop);} animationId=requestAnimationFrame(loop);
 }
 
 // ============================================================
