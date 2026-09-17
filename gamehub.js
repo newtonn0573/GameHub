@@ -5,14 +5,14 @@ javascript:(function(){
 // WAVE PRO + TOWER DEFENSE + RAGDOLL ARCHERS + SNAKE + RUNNER
 // FIXED RAGDOLL PHYSICS / STANDING JOINTS
 // 100% CODE DRAWN — NO EXTERNAL IMAGES
-// NOTE: if your gonna copy this code, please give credit to the original author (me) and don't remove the credits from the source code. thanks!
+// NOTE: if your gonna copy this code, please give credit to the original authors (me and github copiliot) and don't remove the credits from the source code. thanks!
 // ============================================================
 
 let currentCleanup = null;
 
 const SITE_ANNOUNCEMENT={
-    title:"Current Version: v2.81",
-    text:"more games, MASS WAVE AND TOWER DEFENSE UPDATES. also the little thing where the 2x speed appeared in other games was removed.2",
+    title:"Current Version: v3.5",
+    text:"uh you know. we added minecraft and stuff",
     accent:"#67e8f9"
 };
 
@@ -97,7 +97,11 @@ function cleanupCurrentGame(){
         ".fs-pause,"+
         ".js-canvas,"+
         ".js-ui,"+
-        ".js-back"
+        ".js-back,"+
+        ".mc3d-canvas,"+
+        ".mc3d-back,"+
+        ".mc3d-pause,"+
+        ".mc3d-ui"
     ).forEach(e=>e.remove());
 
     document.body.style.userSelect="";
@@ -692,6 +696,7 @@ function showMainMenu(){
         "🏎️  NEON DRIFT":"Thread through traffic, collect boosts, and finish the neon circuit.",
         "💠  CRYSTAL HUNT":"Collect every crystal while hostile drones close in around the arena.",
         "🎯  TARGET RUSH":"Hit moving targets before the timer expires and clear the range.",
+        "🧱  MINECRAFT 3D":"Mine blocks, keep moving, and survive the block world.",
         "🌌  SKY SURFER":"Ride the air lanes, collect stars, and dodge incoming hazard drones.",
         "🪐  AETHER DASH":"Sprint through the void, grab energy cores, and stay clear of the rift.",
         "🔷  PRISM SHIFT":"Flip between lanes and survive the neon pattern until the board clears.",
@@ -739,6 +744,7 @@ function showMainMenu(){
         ["🏎️  NEON DRIFT","#22d3ee",startNeonDrift],
         ["💠  CRYSTAL HUNT","#a3e635",startCrystalHunt],
         ["🎯  TARGET RUSH","#facc15",startTargetRush],
+        ["🧱  MINECRAFT 3D","#7dd3fc",startMinecraft3D],
         ["🌌  SKY SURFER","#38bdf8",startSkySurfer],
         ["🪐  AETHER DASH","#a78bfa",startAetherDash],
         ["🔷  PRISM SHIFT","#67e8f9",startPrismShift],
@@ -12564,6 +12570,544 @@ function startTargetRush(){
     function update(dt){if(ended)return;phase+=dt;time-=dt;if(time<=0){time=0;ended=true;won=score>=15;}for(const t of targets){t.x+=Math.cos(phase*2+t.y)*12*dt;t.y+=Math.sin(phase*1.7+t.x)*12*dt;t.life-=dt*.7;if(t.life<=0){t.life=1;t.x=50+Math.random()*(canvas.width-100);t.y=100+Math.random()*(canvas.height-190);}}}
     function draw(){ctx.fillStyle="#171005";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle="rgba(250,204,21,.08)";ctx.fillRect(30,80,canvas.width-60,canvas.height-120);ctx.strokeStyle="rgba(250,204,21,.35)";ctx.strokeRect(30,80,canvas.width-60,canvas.height-120);for(const t of targets){ctx.save();ctx.globalAlpha=.65+.35*t.life;ctx.shadowColor=t.color;ctx.shadowBlur=24;ctx.strokeStyle=t.color;ctx.lineWidth=5;ctx.beginPath();ctx.arc(t.x,t.y,t.r,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(t.x,t.y,t.r*.42,0,Math.PI*2);ctx.stroke();ctx.restore();}ctx.textAlign="center";ctx.fillStyle="#fff";ctx.font="900 38px Arial";ctx.fillText(score+" / 15",canvas.width/2,54);ctx.font="bold 18px Arial";ctx.fillStyle="#fef08a";ctx.fillText("TIME "+time.toFixed(1),canvas.width/2,82);ui.innerHTML="🎯 TARGET RUSH<br><small>Tap the moving targets before time runs out</small>";if(ended){ctx.fillStyle="rgba(0,0,0,.76)";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle=won?"#a3e635":"#fb7185";ctx.font="900 44px Arial";ctx.fillText(won?"RANGE CLEARED":"TIME UP",canvas.width/2,canvas.height/2-18);ctx.fillStyle="#fff";ctx.font="bold 18px Arial";ctx.fillText("Score: "+score+" • Tap to replay",canvas.width/2,canvas.height/2+24);}}
     function loop(ts){const dt=Math.min((ts-lastTime)/1000,.04);lastTime=ts;if(!paused){update(dt);draw();}animationId=requestAnimationFrame(loop);}back.onclick=()=>{cancelAnimationFrame(animationId);showMainMenu();};currentCleanup=()=>{cancelAnimationFrame(animationId);canvas.removeEventListener("pointerdown",pointerDown);canvas.remove();back.remove();pause.remove();ui.remove();};reset();animationId=requestAnimationFrame(loop);
+}
+
+// ============================================================
+// MINECRAFT 3D
+// ============================================================
+
+function startMinecraft3D(){
+    document.body.style.touchAction="none";
+    const canvas=document.createElement("canvas");
+    const ctx=canvas.getContext("2d");
+    canvas.className="mc3d-canvas";
+    function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
+    resize();
+    Object.assign(canvas.style,{position:"fixed",inset:"0",width:"100%",height:"100%",zIndex:"100000",touchAction:"none"});
+    document.body.appendChild(canvas);
+
+    const back=makeBackButton("mc3d-back");
+    let paused=false;
+    const pause=makeArcadePauseButton("mc3d-pause",v=>paused=v);
+    const ui=document.createElement("div");
+    ui.className="mc3d-ui";
+    Object.assign(ui.style,{position:"fixed",top:"12px",left:"12px",zIndex:"100002",background:"rgba(8,18,28,.9)",color:"#fff",padding:"10px 14px",borderRadius:"12px",fontFamily:"Arial,sans-serif",fontWeight:"bold",border:"1px solid #7dd3fc"});
+    document.body.appendChild(ui);
+
+    const worldSize=22;
+    const blockTypes=[
+        {name:"grass", top:"#7ed957", mid:"#6b8f5f", side:"#5a7d47"},
+        {name:"dirt", top:"#956d3b", mid:"#7b4d2a", side:"#654321"},
+        {name:"stone", top:"#c0c4cc", mid:"#8a8e96", side:"#727783"},
+        {name:"sand", top:"#f3d98f", mid:"#d9b86a", side:"#c2954d"},
+        {name:"wood", top:"#d7a257", mid:"#b67a3a", side:"#8b552c"},
+        {name:"leaves", top:"#69d77b", mid:"#45b765", side:"#2b8b4a"},
+        {name:"ore", top:"#f9e27b", mid:"#c99628", side:"#a97a19"},
+        {name:"brick", top:"#d67e5d", mid:"#b45f44", side:"#8e4031"},
+        {name:"glass", top:"#c4f1ff", mid:"#8fd3ef", side:"#63b6d8"}
+    ];
+    const blockOrder=["grass","dirt","stone","sand","wood","leaves","ore","brick","glass"];
+    const inventory={
+        grass:20,dirt:18,stone:16,sand:10,wood:12,leaves:10,ore:12,brick:4,glass:4,
+        food:8,pickaxe:0,axe:0
+    };
+    const player={x:10.5,y:0,z:10.5,yaw:0.7,pitch:0,vy:0,onGround:true,hp:20,food:100,damageFlash:0};
+    const keys={};
+    let selectedIndex=0, map=[], mobs=[], time=0, worldTime=0;
+    let animationId,lastTime=performance.now();
+    let dead=false,score=0,goal=200,message="";
+
+    function clamp(value,min,max){ return Math.max(min,Math.min(max,value)); }
+    function getCell(x,z){
+        const cx=Math.floor(x), cz=Math.floor(z);
+        if(cx<0 || cz<0 || cx>=worldSize || cz>=worldSize) return null;
+        return map[cz] && map[cz][cx] ? map[cz][cx] : null;
+    }
+    function getTerrainHeightAt(x,z){
+        const cell=getCell(x,z);
+        return cell ? cell.height : 0;
+    }
+    function clampPlayerToWorld(){
+        player.x=clamp(player.x,0.25,worldSize-0.25);
+        player.z=clamp(player.z,0.25,worldSize-0.25);
+    }
+    function getBlockColor(type, isTop, isSide){
+        const def=blockTypes.find(b=>b.name===type)||blockTypes[0];
+        if(type==="grass" && isTop) return def.top;
+        if(type==="grass" && isSide) return def.side;
+        if(type==="dirt" && isTop) return def.top;
+        if(type==="stone" && isTop) return def.top;
+        if(type==="sand" && isTop) return def.top;
+        if(type==="wood" && isTop) return def.top;
+        if(type==="ore") return isTop ? def.top : def.mid;
+        return isSide ? def.side : def.mid;
+    }
+
+    function terrainNoise(x,z){
+        const n = Math.sin((x+1.7)*0.87) + Math.cos((z+1.3)*0.94) + Math.sin((x+z)*0.57);
+        return n;
+    }
+
+    function makeTree(x,z){
+        const base=getCell(x,z);
+        if(!base || base.height < 2) return;
+        base.type="grass";
+        const trunkHeight=2 + Math.floor(Math.random()*2);
+        for(let i=0;i<trunkHeight;i++){
+            const c=getCell(x, z-i);
+            if(c){ c.type="wood"; c.height=Math.max(c.height,3); }
+        }
+        for(let dx=-2;dx<=2;dx++){
+            for(let dz=-2;dz<=2;dz++){
+                if(Math.abs(dx)+Math.abs(dz) > 3) continue;
+                const c=getCell(x+dx, z-1+dz);
+                if(c && Math.random() < 0.82){ c.type="leaves"; c.height=Math.max(c.height,3); }
+            }
+        }
+    }
+
+    function resetWorld(){
+        map=[];
+        for(let z=0; z<worldSize; z++){
+            const row=[];
+            for(let x=0; x<worldSize; x++){
+                const ridge = terrainNoise(x,z);
+                const base = Math.max(1, Math.round(2 + ridge + Math.random()*2.2));
+                let type="grass";
+                if(base <= 2) type="sand";
+                if(base >= 4) type="stone";
+                if(base >= 5 && Math.random() < 0.18) type="ore";
+                row.push({height:base, type});
+            }
+            map.push(row);
+        }
+
+        for(let z=0; z<worldSize; z++){
+            for(let x=0; x<worldSize; x++){
+                const cell = getCell(x,z);
+                if(!cell) continue;
+                const cave = Math.sin((x+3.2)*0.9) * Math.cos((z+2.7)*0.8) + Math.random() * 0.7;
+                if(cell.height > 3 && cave > 0.9){
+                    cell.height = Math.max(1, cell.height - 1 - Math.floor(Math.random()*2));
+                    cell.type = "stone";
+                }
+            }
+        }
+
+        for(let i=0;i<14;i++){
+            const x=2+Math.floor(Math.random()*(worldSize-4));
+            const z=2+Math.floor(Math.random()*(worldSize-4));
+            makeTree(x,z);
+        }
+    }
+
+    function resetPlayer(){
+        const cx=Math.floor(worldSize/2), cz=Math.floor(worldSize/2);
+        const cell=getCell(cx,cz) || {height:3};
+        player.x = cx + 0.5;
+        player.z = cz + 0.5;
+        player.y = cell.height + 1.7;
+        player.yaw = 0.7;
+        player.pitch = 0;
+        player.vy = 0;
+        player.onGround = false;
+        player.hp = 20;
+        player.food = 100;
+        player.damageFlash = 0;
+    }
+
+    function resetMobs(){
+        mobs=[];
+        for(let i=0;i<10;i++){
+            const x=2+Math.random()*(worldSize-4);
+            const z=2+Math.random()*(worldSize-4);
+            const cell=getCell(x,z);
+            if(!cell || cell.height <= 0) continue;
+            mobs.push({x:x+0.5,y:cell.height+1.1,z:z+0.5,hp:18,alive:true,walk:Math.random()*Math.PI*2});
+        }
+    }
+
+    function resetRun(){
+        dead=false; score=0; selectedIndex=0; message="Survive. Mine. Craft. Build.";
+        inventory.grass=20; inventory.dirt=18; inventory.stone=16; inventory.sand=10; inventory.wood=12; inventory.leaves=10; inventory.ore=12; inventory.brick=4; inventory.glass=4; inventory.food=8; inventory.pickaxe=0; inventory.axe=0;
+        resetWorld(); resetMobs(); resetPlayer();
+    }
+
+    function craftTool(kind){
+        const needWood = 3;
+        const needStone = 3;
+        if((inventory.wood||0) < needWood || (inventory.stone||0) < needStone) {
+            message = "Need 3 wood and 3 stone to craft a tool.";
+            return;
+        }
+        inventory.wood -= needWood;
+        inventory.stone -= needStone;
+        inventory[kind] = (inventory[kind] || 0) + 1;
+        score += 18;
+        message = kind === "pickaxe" ? "Pickaxe crafted." : "Axe crafted.";
+    }
+
+    function eatFood(){
+        if((inventory.food||0) <= 0) {
+            message = "No food in inventory.";
+            return;
+        }
+        inventory.food -= 1;
+        player.food = clamp(player.food + 30, 0, 100);
+        player.hp = clamp(player.hp + 3, 0, 20);
+        message = "Ate food.";
+    }
+
+    function raycast(maxDist=6){
+        for(let dist=0.25; dist<maxDist; dist += 0.08){
+            const x=player.x + Math.cos(player.yaw)*dist;
+            const z=player.z + Math.sin(player.yaw)*dist;
+            const cell=getCell(x,z);
+            if(cell && cell.height > 0 && player.y < cell.height + 1.7){
+                return {x,z,cell,dist};
+            }
+        }
+        return null;
+    }
+
+    function mineAtTarget(){
+        if(dead || paused) return;
+        const hit=raycast(5.5);
+        if(!hit || !hit.cell) return;
+        const cx=Math.floor(hit.x), cz=Math.floor(hit.z);
+        const cell=getCell(cx,cz);
+        if(!cell || cell.height <= 0) return;
+        const minedType=cell.type;
+        const minedValue = minedType === "ore" ? 18 : minedType === "wood" ? 11 : minedType === "leaves" ? 9 : 7;
+        cell.height=Math.max(0, cell.height - 1);
+        if(cell.height === 0) cell.type = "stone";
+        score += minedValue;
+        inventory[minedType] = (inventory[minedType] || 0) + 1;
+        if(minedType === "leaves" && Math.random() < 0.35) inventory.food = (inventory.food || 0) + 1;
+        if(score >= goal){ dead = true; message = "You survived the night!"; }
+        message = `Mined ${minedType}.`;
+    }
+
+    function placeSelectedBlock(){
+        if(dead || paused) return;
+        const selected=blockOrder[selectedIndex % blockOrder.length];
+        if((inventory[selected] || 0) <= 0) return;
+        const hit=raycast(4.8);
+        if(!hit || !hit.cell) return;
+        const cx=Math.floor(hit.x), cz=Math.floor(hit.z);
+        const cell=getCell(cx,cz);
+        if(!cell || cell.height >= 8) return;
+        cell.height=Math.min(8, cell.height + 1);
+        cell.type=selected;
+        inventory[selected] = Math.max(0, (inventory[selected] || 0) - 1);
+        score = Math.max(0, score - 1);
+        message = `Placed ${selected}.`;
+    }
+
+    function cycleSelection(dir){ selectedIndex=(selectedIndex + dir + blockOrder.length) % blockOrder.length; }
+
+    function keyDown(e){
+        const key=e.key.toLowerCase();
+        keys[key]=true;
+        if(e.key === "ArrowLeft" || key === "a") player.yaw -= 0.12;
+        if(e.key === "ArrowRight" || key === "d") player.yaw += 0.12;
+        if(e.key === "ArrowUp" || key === "w") player.pitch = clamp(player.pitch - 0.08, -1.2, 1.2);
+        if(e.key === "ArrowDown" || key === "s") player.pitch = clamp(player.pitch + 0.08, -1.2, 1.2);
+        if((e.key === " " || key === "space") && player.onGround){ player.vy = 4.8; player.onGround = false; }
+        if(key === "q") cycleSelection(-1);
+        if(key === "e") cycleSelection(1);
+        if(key === "c") craftTool("pickaxe");
+        if(key === "v") craftTool("axe");
+        if(key === "h") eatFood();
+        if(key === "1") selectedIndex = 0;
+        if(key === "2") selectedIndex = 1;
+        if(key === "3") selectedIndex = 2;
+        if(key === "4") selectedIndex = 3;
+        if(key === "5") selectedIndex = 4;
+        if(key === "6") selectedIndex = 5;
+        if(key === "7") selectedIndex = 6;
+        if(key === "8") selectedIndex = 7;
+        if(key === "9") selectedIndex = 8;
+    }
+    function keyUp(e){ keys[e.key.toLowerCase()] = false; }
+
+    function updateMobs(dt){
+        for(let i=mobs.length-1;i>=0;i--){
+            const mob=mobs[i];
+            if(!mob.alive) continue;
+            const dx=player.x - mob.x;
+            const dz=player.z - mob.z;
+            const distance=Math.hypot(dx,dz) || 1;
+            if(distance < 8){
+                const speed=0.9;
+                mob.x += (dx / distance) * speed * dt;
+                mob.z += (dz / distance) * speed * dt;
+                if(distance < 1.35){
+                    player.hp = Math.max(0, player.hp - 8 * dt);
+                    player.food = Math.max(0, player.food - 4 * dt);
+                    player.damageFlash = 0.55;
+                }
+            }
+            const ground=getTerrainHeightAt(mob.x, mob.z) + 1.1;
+            if(mob.y > ground){ mob.y -= 10 * dt; }
+            else { mob.y = ground; }
+            mob.walk += dt * 2;
+        }
+    }
+
+    function update(dt){
+        if(dead || paused) return;
+        time += dt;
+        worldTime += dt;
+        player.food = Math.max(0, player.food - 1.5 * dt);
+        if(player.food <= 0){ player.hp = Math.max(0, player.hp - 4 * dt); }
+        if(player.hp <= 0){ dead = true; message = "You were overwhelmed."; }
+
+        const forwardX=Math.cos(player.yaw), forwardZ=Math.sin(player.yaw);
+        const rightX=Math.cos(player.yaw + Math.PI/2), rightZ=Math.sin(player.yaw + Math.PI/2);
+        const moveX=(keys.d||keys.arrowright?1:0) - (keys.a||keys.arrowleft?1:0);
+        const moveZ=(keys.w||keys.arrowup?1:0) - (keys.s||keys.arrowdown?1:0);
+        const moveVecX = forwardX*moveZ + rightX*moveX;
+        const moveVecZ = forwardZ*moveZ + rightZ*moveX;
+        const moveLen=Math.hypot(moveVecX, moveVecZ) || 1;
+        const sprint = (keys.shift ? 1.5 : 1);
+
+        const nextX = player.x + (moveVecX/moveLen) * 2.8 * sprint * dt;
+        const nextZ = player.z + (moveVecZ/moveLen) * 2.8 * sprint * dt;
+        const nextCell = getCell(nextX, player.z);
+        const nextCell2 = getCell(player.x, nextZ);
+        if(nextCell && nextCell.height > 0) player.x = nextX;
+        if(nextCell2 && nextCell2.height > 0) player.z = nextZ;
+        clampPlayerToWorld();
+
+        player.vy -= 11.5 * dt;
+        player.y += player.vy * dt;
+        const groundHeight = getTerrainHeightAt(player.x, player.z) + 1.7;
+        if(player.y <= groundHeight){
+            player.y = groundHeight;
+            player.vy = 0;
+            player.onGround = true;
+        } else {
+            player.onGround = false;
+        }
+
+        if(player.y < -5){
+            player.hp = 0; dead = true; message = "You fell out of the world.";
+        }
+
+        player.damageFlash = Math.max(0, player.damageFlash - dt);
+        updateMobs(dt);
+        if(score >= goal){ dead = true; message = "You survived the world and built enough!"; }
+    }
+
+    function shadeColor(hex, factor){
+        const clean=hex.replace('#','');
+        const num=parseInt(clean,16);
+        const r=((num>>16)&255)*factor;
+        const g=((num>>8)&255)*factor;
+        const b=(num&255)*factor;
+        return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+    }
+
+    function drawMobProjection(mob){
+        const dx=mob.x - player.x;
+        const dz=mob.z - player.z;
+        const dist=Math.hypot(dx,dz) || 1;
+        const angle=Math.atan2(dz,dx)-player.yaw;
+        const fov=Math.PI/3.2;
+        if(Math.abs(angle) > fov/2 + 0.4) return null;
+        const screenX=canvas.width/2 + Math.tan(angle) * (canvas.width*0.36);
+        const screenY=canvas.height/2 + player.pitch * 110 + 12;
+        const size=Math.max(8, 48 - dist*4.4);
+        return {x:screenX,y:screenY,size,dist};
+    }
+
+    function draw(){
+        const w=canvas.width, h=canvas.height;
+        const dayMix=(Math.sin(worldTime*0.18)+1)/2;
+        const sky = ctx.createLinearGradient(0,0,0,h);
+        const dayR=Math.round(70 + dayMix*130), dayG=Math.round(110 + dayMix*110), dayB=Math.round(180 + dayMix*75);
+        sky.addColorStop(0, `rgb(${dayR}, ${dayG}, ${dayB})`);
+        sky.addColorStop(0.5, `rgb(${Math.round(100 + dayMix*90)}, ${Math.round(150 + dayMix*80)}, ${Math.round(210 + dayMix*45)})`);
+        sky.addColorStop(1, "#dff7ff");
+        ctx.fillStyle=sky;
+        ctx.fillRect(0,0,w,h);
+
+        ctx.fillStyle=`rgba(255, ${Math.round(220 + dayMix*25)}, ${Math.round(120 + dayMix*20)}, 0.95)`;
+        ctx.beginPath();
+        ctx.arc(w*0.78, h*0.2 + 18*(1-dayMix), 40, 0, Math.PI*2);
+        ctx.fill();
+
+        const cycleText = Math.floor((worldTime / 20) % 24);
+        const isNight = dayMix < 0.45;
+
+        const fov=Math.PI/3.2;
+        for(let i=0; i<240; i++){
+            const ray = player.yaw - fov/2 + (i/239)*fov;
+            let dist=0.15;
+            let hit=null;
+            while(dist < 10){
+                const x=player.x + Math.cos(ray)*dist;
+                const z=player.z + Math.sin(ray)*dist;
+                const cell=getCell(x,z);
+                if(cell && cell.height > 0){
+                    const top = cell.height + 1.2;
+                    if(player.y < top + 1.3){
+                        hit={x,z,cell,dist};
+                        break;
+                    }
+                }
+                dist += 0.08;
+            }
+            if(hit){
+                const brightness=Math.max(0.22, 1.35 - hit.dist/8.5);
+                const sx = i * (w / 240);
+                const wallH=Math.max(32, (h*0.86)/hit.dist);
+                const top = h/2 - wallH/2 + player.pitch*120;
+                const base=getBlockColor(hit.cell.type, true, true);
+                ctx.fillStyle=shadeColor(base, brightness);
+                ctx.fillRect(sx, top, (w / 240)+1, wallH);
+                ctx.fillStyle="rgba(0,0,0,.12)";
+                ctx.fillRect(sx, Math.max(top,0), (w / 240)+1, Math.max(9, wallH * 0.08));
+            }
+        }
+
+        for(const mob of mobs){
+            if(!mob.alive) continue;
+            const proj=drawMobProjection(mob);
+            if(!proj) continue;
+            ctx.save();
+            ctx.translate(proj.x, proj.y + Math.sin(mob.walk)*4);
+            ctx.fillStyle="#2dd4bf";
+            ctx.fillRect(-proj.size/2, -proj.size/2, proj.size, proj.size);
+            ctx.fillStyle="rgba(16,185,129,.35)";
+            ctx.fillRect(-proj.size*0.35, proj.size*0.25, proj.size*0.7, proj.size*0.18);
+            ctx.restore();
+        }
+
+        ctx.fillStyle="#90d97b";
+        ctx.fillRect(0, h*0.72, w, h*0.28);
+
+        ctx.save();
+        ctx.strokeStyle="rgba(255,255,255,.9)";
+        ctx.lineWidth=2;
+        ctx.beginPath();
+        ctx.moveTo(w/2-10,h/2); ctx.lineTo(w/2+10,h/2); ctx.moveTo(w/2,h/2-10); ctx.lineTo(w/2,h/2+10); ctx.stroke();
+        ctx.restore();
+
+        const selected=blockOrder[selectedIndex % blockOrder.length];
+        const hudW=230, hudH=170, hudX=18, hudY=h-176;
+        ctx.fillStyle="rgba(0,0,0,.42)";
+        ctx.fillRect(hudX,hudY,hudW,hudH);
+        ctx.strokeStyle="rgba(255,255,255,.22)";
+        ctx.strokeRect(hudX,hudY,hudW,hudH);
+        ctx.fillStyle=getBlockColor(selected,true,true);
+        ctx.fillRect(hudX+18,hudY+18,38,38);
+        ctx.fillStyle="#fff";
+        ctx.font="900 18px Arial";
+        ctx.textAlign="left";
+        ctx.fillText(selected.toUpperCase(), hudX+68, hudY+42);
+        ctx.font="bold 12px Arial";
+        ctx.fillText("INVENTORY", hudX+18, hudY+80);
+        let invX=hudX+18;
+        for(const key of blockOrder){
+            ctx.fillStyle=getBlockColor(key,true,true);
+            ctx.fillRect(invX, hudY+88, 18, 18);
+            ctx.fillStyle="#fff";
+            ctx.fillText(String(inventory[key] || 0), invX+22, hudY+102);
+            invX += 42;
+        }
+        ctx.fillStyle="#fff";
+        ctx.font="900 22px Arial";
+        ctx.fillText(`HP ${Math.max(0,Math.round(player.hp))}`, 18, 30);
+        ctx.fillText(`FOOD ${Math.max(0,Math.round(player.food))}`, 18, 58);
+        ctx.fillText(`SCORE ${score}/${goal}`, 18, 86);
+        ctx.fillText(`Y ${player.y.toFixed(1)}`, 18, 114);
+
+        if(player.damageFlash>0){
+            ctx.fillStyle=`rgba(255,80,80,${0.16 + player.damageFlash * 0.4})`;
+            ctx.fillRect(0,0,w,h);
+        }
+
+        ctx.fillStyle="#dbeafe";
+        ctx.font="bold 18px Arial";
+        ctx.textAlign="center";
+        ctx.fillText(`${cycleText}:00 ${isNight ? "Night" : "Day"}  •  ${message}`, w/2, h-22);
+
+        ui.innerHTML="🧱 MINECRAFT SURVIVAL<br><small>WASD move • Shift sprint • Space jump • Q/E hotbar • C craft • H eat • Left mine • Right place</small>";
+
+        if(dead){
+            ctx.fillStyle="rgba(0,0,0,.72)";
+            ctx.fillRect(0,0,w,h);
+            ctx.fillStyle="#7dd3fc";
+            ctx.font="900 52px Arial";
+            ctx.textAlign="center";
+            ctx.fillText(score >= goal ? "WORLD CLEARED" : "YOU DIED!", w/2, h/2-20);
+            ctx.fillStyle="#ffffff";
+            ctx.font="bold 20px Arial";
+            ctx.fillText("Tap to restart", w/2, h/2+26);
+            ctx.fillStyle="#dbeafe";
+            ctx.font="bold 16px Arial";
+            ctx.fillText(message, w/2, h/2+60);
+        }
+    }
+
+    function loop(ts){
+        const dt=Math.min((ts-lastTime)/1000,.04);
+        lastTime=ts;
+        if(!paused){ update(dt); draw(); }
+        animationId=requestAnimationFrame(loop);
+    }
+
+    canvas.addEventListener("pointerdown", e=>{
+        if(dead){ resetRun(); return; }
+        if(e.button === 0){
+            const nearest = mobs.filter(m => m.alive).sort((a,b)=>{
+                const da = Math.hypot(a.x-player.x,a.z-player.z);
+                const db = Math.hypot(b.x-player.x,b.z-player.z);
+                return da-db;
+            })[0];
+            if(nearest && Math.hypot(nearest.x-player.x,nearest.z-player.z) < 1.9){
+                nearest.hp -= 18;
+                if(nearest.hp <= 0){
+                    nearest.alive = false;
+                    score += 25;
+                    inventory.food = (inventory.food || 0) + 1;
+                    message = "Mob defeated.";
+                }
+            } else {
+                mineAtTarget();
+            }
+        }
+        if(e.button === 2) placeSelectedBlock();
+    }, {passive:true});
+
+    const handleContextMenu = e => e.preventDefault();
+    canvas.addEventListener("contextmenu", handleContextMenu);
+    window.addEventListener("keydown", keyDown);
+    window.addEventListener("keyup", keyUp);
+    back.onclick=()=>{ cancelAnimationFrame(animationId); showMainMenu(); };
+
+    const handlePointerMove = (e)=>{
+        if(!paused && !dead && e.buttons === 1){
+            player.yaw += e.movementX * 0.004;
+            player.pitch = clamp(player.pitch - e.movementY * 0.0025, -1.1, 1.1);
+        }
+    };
+    canvas.addEventListener("pointermove", handlePointerMove, {passive:true});
+    currentCleanup=()=>{
+        cancelAnimationFrame(animationId);
+        window.removeEventListener("keydown", keyDown);
+        window.removeEventListener("keyup", keyUp);
+        canvas.removeEventListener("contextmenu", handleContextMenu);
+        canvas.removeEventListener("pointermove", handlePointerMove);
+        canvas.remove();
+        back.remove();
+        pause.remove();
+        ui.remove();
+    };
+    resetRun();
+    animationId=requestAnimationFrame(loop);
 }
 
 // ============================================================
