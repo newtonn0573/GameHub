@@ -12579,6 +12579,149 @@ function startTargetRush(){
 function startMinecraft3D(){
     document.body.style.touchAction="none";
     const canvas=document.createElement("canvas");
+    const gl=canvas.getContext("webgl",{antialias:false,alpha:false});
+    canvas.className="mc3d-canvas";
+    Object.assign(canvas.style,{position:"fixed",inset:"0",width:"100%",height:"100%",zIndex:"100000",touchAction:"none",imageRendering:"pixelated"});
+    document.body.appendChild(canvas);
+    if(!gl){canvas.remove();showMainMenu();return;}
+
+    const back=makeBackButton("mc3d-back");
+    let paused=false;
+    const pause=makeArcadePauseButton("mc3d-pause",v=>paused=v);
+    const ui=document.createElement("div");
+    Object.assign(ui.style,{position:"fixed",top:"12px",left:"12px",zIndex:"100002",background:"rgba(8,18,28,.88)",color:"#fff",padding:"10px 14px",borderRadius:"10px",fontFamily:"Arial,sans-serif",fontWeight:"bold",border:"1px solid #7dd3fc",lineHeight:"1.45"});
+    document.body.appendChild(ui);
+    const crosshair=document.createElement("div");
+    crosshair.textContent="+";
+    Object.assign(crosshair.style,{position:"fixed",left:"50%",top:"50%",transform:"translate(-50%,-54%)",zIndex:"100001",color:"rgba(255,255,255,.9)",font:"bold 26px monospace",textShadow:"0 1px 3px #000",pointerEvents:"none"});
+    document.body.appendChild(crosshair);
+
+    const worldSize=28,worldHeight=12;
+    const blockTypes={air:{color:[0,0,0]},grass:{color:[.34,.72,.23]},dirt:{color:[.45,.27,.13]},stone:{color:[.48,.51,.56]},sand:{color:[.82,.67,.36]},wood:{color:[.58,.32,.13]},leaves:{color:[.16,.59,.27]},ore:{color:[.82,.58,.09]},brick:{color:[.63,.22,.14]},glass:{color:[.42,.78,.9]}};
+    const blockOrder=["grass","dirt","stone","sand","wood","leaves","ore","brick","glass"];
+    const inventory={grass:20,dirt:18,stone:16,sand:10,wood:12,leaves:10,ore:12,brick:4,glass:4,food:8,pickaxe:0,axe:0};
+    const voxels=new Uint8Array(worldSize*worldHeight*worldSize);
+    const player={x:14.5,y:6,z:14.5,yaw:.7,pitch:-.08,vy:0,onGround:false,hp:20,food:100,damageFlash:0};
+    const keys={};
+    let selectedIndex=0,mobs=[],worldTime=0,score=0,goal=200,message="Survive. Mine. Craft. Build.";
+    let animationId,lastTime=performance.now(),dead=false,meshDirty=true,vertexCount=0;
+    let positionBuffer,colorBuffer,program,positionLocation,colorLocation,projectionLocation,viewLocation,dayLocation;
+
+    function index(x,y,z){return x+worldSize*(z+worldSize*y);}
+    function inside(x,y,z){return x>=0&&z>=0&&y>=0&&x<worldSize&&z<worldSize&&y<worldHeight;}
+    function getVoxel(x,y,z){return inside(x,y,z)?voxels[index(x,y,z)]:0;}
+    function setVoxel(x,y,z,value){if(inside(x,y,z))voxels[index(x,y,z)]=value;}
+    function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
+    function terrainHeight(x,z){return clamp(Math.round(3+Math.sin((x+1)*.55)*1.4+Math.cos((z+2)*.62)*1.5+Math.sin((x+z)*.31)*1.1),2,7);}
+    function typeId(name){return blockOrder.indexOf(name)+1;}
+    function blockName(id){return blockOrder[id-1]||"stone";}
+
+    function makeTree(x,z){
+        const ground=terrainHeight(x,z);
+        for(let y=ground+1;y<=Math.min(worldHeight-2,ground+3);y++)setVoxel(x,y,z,typeId("wood"));
+        for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++)for(let dy=0;dy<=2;dy++){
+            if(Math.abs(dx)+Math.abs(dz)+dy>4)continue;
+            const y=ground+2+dy;if(!getVoxel(x+dx,y,z+dz))setVoxel(x+dx,y,z+dz,typeId("leaves"));
+        }
+    }
+
+    function resetWorld(){
+        voxels.fill(0);
+        for(let z=0;z<worldSize;z++)for(let x=0;x<worldSize;x++){
+            const surface=terrainHeight(x,z);
+            for(let y=0;y<=surface;y++){
+                let type="stone";
+                if(y===surface)type=surface<=3?"sand":"grass";
+                else if(y>=surface-2)type="dirt";
+                else if(y>1&&Math.random()<.08)type="ore";
+                setVoxel(x,y,z,typeId(type));
+            }
+        }
+        for(let i=0;i<18;i++)makeTree(2+Math.floor(Math.random()*(worldSize-4)),2+Math.floor(Math.random()*(worldSize-4)));
+        meshDirty=true;
+    }
+    function resetPlayer(){
+        player.x=worldSize/2+.5;player.z=worldSize/2+.5;player.y=terrainHeight(Math.floor(player.x),Math.floor(player.z))+2.2;player.yaw=.7;player.pitch=-.08;player.vy=0;player.onGround=false;player.hp=20;player.food=100;player.damageFlash=0;
+    }
+    function resetMobs(){
+        mobs=[];
+        for(let i=0;i<12;i++){const x=2+Math.floor(Math.random()*(worldSize-4)),z=2+Math.floor(Math.random()*(worldSize-4));mobs.push({x:x+.5,z:z+.5,y:terrainHeight(x,z)+1.1,hp:20,alive:true,walk:Math.random()*6});}
+    }
+    function resetRun(){
+        dead=false;score=0;selectedIndex=0;worldTime=0;message="Survive. Mine. Craft. Build.";
+        inventory.grass=20;inventory.dirt=18;inventory.stone=16;inventory.sand=10;inventory.wood=12;inventory.leaves=10;inventory.ore=12;inventory.brick=4;inventory.glass=4;inventory.food=8;inventory.pickaxe=0;inventory.axe=0;
+        resetWorld();resetPlayer();resetMobs();
+    }
+
+    function compileShader(type,source){const shader=gl.createShader(type);gl.shaderSource(shader,source);gl.compileShader(shader);if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(shader));return shader;}
+    function setupGL(){
+        const vertex=compileShader(gl.VERTEX_SHADER,"attribute vec3 aPosition;attribute vec3 aColor;uniform mat4 uProjection;uniform mat4 uView;varying vec3 vColor;varying float vDepth;void main(){vec4 viewPos=uView*vec4(aPosition,1.0);gl_Position=uProjection*viewPos;vColor=aColor;vDepth=-viewPos.z;}");
+        const fragment=compileShader(gl.FRAGMENT_SHADER,"precision mediump float;varying vec3 vColor;varying float vDepth;uniform float uDay;void main(){float fog=clamp((vDepth-10.0)/38.0,0.0,.82);vec3 sky=mix(vec3(.025,.045,.10),vec3(.53,.76,.95),uDay);gl_FragColor=vec4(mix(vColor*uDay,sky,fog),1.0);}");
+        program=gl.createProgram();gl.attachShader(program,vertex);gl.attachShader(program,fragment);gl.linkProgram(program);
+        positionLocation=gl.getAttribLocation(program,"aPosition");colorLocation=gl.getAttribLocation(program,"aColor");projectionLocation=gl.getUniformLocation(program,"uProjection");viewLocation=gl.getUniformLocation(program,"uView");dayLocation=gl.getUniformLocation(program,"uDay");
+        positionBuffer=gl.createBuffer();colorBuffer=gl.createBuffer();gl.enable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);
+    }
+    function face(vertices,normal,base,positions,colors){
+        const light=normal[1]>.5?1:normal[0]!==0?.82:.9;
+        const order=[0,1,2,0,2,3];
+        for(const i of order){positions.push(vertices[i*3],vertices[i*3+1],vertices[i*3+2]);colors.push(base[0]*light,base[1]*light,base[2]*light);}
+    }
+    function rebuildMesh(){
+        const positions=[],colors=[];
+        const faces=[
+            {n:[0,1,0],v:[0,1,0,1,1,0,1,1,1,0,1,1]},
+            {n:[0,-1,0],v:[0,0,1,1,0,1,1,0,0,0,0,0]},
+            {n:[0,0,1],v:[0,0,1,1,0,1,1,1,1,0,1,1]},
+            {n:[0,0,-1],v:[1,0,0,0,0,0,0,1,0,1,1,0]},
+            {n:[1,0,0],v:[1,0,1,1,0,0,1,1,0,1,1,1]},
+            {n:[-1,0,0],v:[0,0,0,0,0,1,0,1,1,0,1,0]}
+        ];
+        for(let y=0;y<worldHeight;y++)for(let z=0;z<worldSize;z++)for(let x=0;x<worldSize;x++){
+            const id=getVoxel(x,y,z);if(!id)continue;const base=blockTypes[blockName(id)].color;
+            for(const current of faces){if(getVoxel(x+current.n[0],y+current.n[1],z+current.n[2]))continue;const v=current.v;const vertices=[];for(let i=0;i<v.length;i+=3)vertices.push(x+v[i],y+v[i+1],z+v[i+2]);face(vertices,current.n,base,positions,colors);}
+        }
+        vertexCount=positions.length/3;gl.bindBuffer(gl.ARRAY_BUFFER,positionBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(positions),gl.STATIC_DRAW);gl.bindBuffer(gl.ARRAY_BUFFER,colorBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(colors),gl.STATIC_DRAW);meshDirty=false;
+    }
+    function perspective(fov,aspect,near,far){const f=1/Math.tan(fov/2),nf=1/(near-far);return new Float32Array([f/aspect,0,0,0,0,f,0,0,0,0,(far+near)*nf,-1,0,0,2*far*near*nf,0]);}
+    function viewMatrix(){
+        const cy=Math.cos(player.yaw),sy=Math.sin(player.yaw),cp=Math.cos(player.pitch),sp=Math.sin(player.pitch);const fx=cy*cp,fy=sp,fz=sy*cp,rx=-sy,rz=cy,ux=-cy*sp,uy=cp,uz=-sy*sp;
+        return new Float32Array([rx,ux,-fx,0,0,uy,-fy,0,rz,uz,-fz,0,-(rx*player.x+rz*player.z),-(ux*player.x+uy*player.y+uz*player.z),fx*player.x+fy*player.y+fz*player.z,1]);
+    }
+    function cameraDirection(){const cp=Math.cos(player.pitch);return{x:Math.cos(player.yaw)*cp,y:Math.sin(player.pitch),z:Math.sin(player.yaw)*cp};}
+    function blockHit(maxDistance=7){
+        const direction=cameraDirection();
+        for(let distance=.15;distance<maxDistance;distance+=.035){const x=Math.floor(player.x+direction.x*distance),y=Math.floor(player.y+direction.y*distance),z=Math.floor(player.z+direction.z*distance);if(getVoxel(x,y,z))return{x,y,z,px:Math.floor(player.x+direction.x*(distance-.04)),py:Math.floor(player.y+direction.y*(distance-.04)),pz:Math.floor(player.z+direction.z*(distance-.04))};}
+        return null;
+    }
+    function mine(){const hit=blockHit();if(!hit)return;const id=getVoxel(hit.x,hit.y,hit.z),name=blockName(id);setVoxel(hit.x,hit.y,hit.z,0);inventory[name]=(inventory[name]||0)+1;score+=name==="ore"?20:7;meshDirty=true;message=`Mined ${name}.`;}
+    function place(){const hit=blockHit();if(!hit)return;const selected=blockOrder[selectedIndex];if((inventory[selected]||0)<=0||!inside(hit.px,hit.py,hit.pz)||getVoxel(hit.px,hit.py,hit.pz))return;setVoxel(hit.px,hit.py,hit.pz,typeId(selected));inventory[selected]--;score=Math.max(0,score-1);meshDirty=true;message=`Placed ${selected}.`;}
+    function craft(kind){if(inventory.wood<3||inventory.stone<3){message="Need 3 wood and 3 stone.";return;}inventory.wood-=3;inventory.stone-=3;inventory[kind]++;score+=18;message=`Crafted ${kind}.`;}
+    function eat(){if(!inventory.food){message="No food.";return;}inventory.food--;player.food=clamp(player.food+30,0,100);player.hp=clamp(player.hp+3,0,20);message="Ate food.";}
+    function keyDown(e){const key=e.key.toLowerCase();keys[key]=true;if(key==="q")selectedIndex=(selectedIndex+blockOrder.length-1)%blockOrder.length;if(key==="e")selectedIndex=(selectedIndex+1)%blockOrder.length;if(key==="c")craft("pickaxe");if(key==="v")craft("axe");if(key==="h")eat();if(/^\d$/.test(key))selectedIndex=clamp(Number(key)-1,0,blockOrder.length-1);if((key===" "||key==="space")&&player.onGround){player.vy=5.2;player.onGround=false;}}
+    function keyUp(e){keys[e.key.toLowerCase()]=false;}
+    function updateMobs(dt,isNight){for(const mob of mobs){if(!mob.alive)continue;const dx=player.x-mob.x,dz=player.z-mob.z,dist=Math.hypot(dx,dz)||1;if(dist<(isNight?10:5)){mob.x+=dx/dist*(isNight?1.05:.45)*dt;mob.z+=dz/dist*(isNight?1.05:.45)*dt;if(dist<1.3){player.hp=Math.max(0,player.hp-8*dt);player.damageFlash=.5;}}mob.y=terrainHeight(Math.floor(mob.x),Math.floor(mob.z))+1.1;mob.walk+=dt*4;}}
+    function update(dt){
+        if(dead||paused)return;worldTime+=dt;player.food=Math.max(0,player.food-1.2*dt);if(player.food<=0)player.hp=Math.max(0,player.hp-3*dt);const day=(Math.sin(worldTime*.16)+1)/2,isNight=day<.4;
+        const forward={x:Math.cos(player.yaw),z:Math.sin(player.yaw)},right={x:-forward.z,z:forward.x};let mx=(keys.d?1:0)-(keys.a?1:0),mz=(keys.w?1:0)-(keys.s?1:0),length=Math.hypot(mx,mz)||1,speed=keys.shift?5:3;
+        const nx=player.x+(forward.x*mz+right.x*mx)/length*speed*dt,nz=player.z+(forward.z*mz+right.z*mx)/length*speed*dt;if(nx>.5&&nx<worldSize-.5&&!getVoxel(Math.floor(nx),Math.floor(player.y),Math.floor(player.z)))player.x=nx;if(nz>.5&&nz<worldSize-.5&&!getVoxel(Math.floor(player.x),Math.floor(player.y),Math.floor(nz)))player.z=nz;
+        player.vy-=12*dt;player.y+=player.vy*dt;const ground=terrainHeight(Math.floor(player.x),Math.floor(player.z))+1.7;if(player.y<=ground){player.y=ground;player.vy=0;player.onGround=true;}else player.onGround=false;player.damageFlash=Math.max(0,player.damageFlash-dt);updateMobs(dt,isNight);if(player.hp<=0||score>=goal)dead=true;
+    }
+    function draw(){
+        if(meshDirty)rebuildMesh();const day=(Math.sin(worldTime*.16)+1)/2,isNight=day<.4;gl.viewport(0,0,canvas.width,canvas.height);gl.clearColor(.04+.42*day,.07+.6*day,.16+.72*day,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(program);gl.uniformMatrix4fv(projectionLocation,false,perspective(Math.PI/3,canvas.width/canvas.height,.05,100));gl.uniformMatrix4fv(viewLocation,false,viewMatrix());gl.uniform1f(dayLocation,.38+day*.62);gl.bindBuffer(gl.ARRAY_BUFFER,positionBuffer);gl.enableVertexAttribArray(positionLocation);gl.vertexAttribPointer(positionLocation,3,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,colorBuffer);gl.enableVertexAttribArray(colorLocation);gl.vertexAttribPointer(colorLocation,3,gl.FLOAT,false,0,0);gl.drawArrays(gl.TRIANGLES,0,vertexCount);
+        const selected=blockOrder[selectedIndex];ui.innerHTML=`🧱 REAL 3D MINECRAFT<br><small>WASD move • mouse look • Shift sprint • Space jump • Left mine • Right place • Q/E hotbar</small><br><b>${isNight?"Night":"Day"}</b> • HP ${Math.round(player.hp)} • Food ${Math.round(player.food)} • ${selected.toUpperCase()} x${inventory[selected]||0}<br><small>C craft pickaxe • V craft axe • H eat • ${message}</small>`;if(dead)ui.innerHTML+=`<div style="font-size:26px;color:#7dd3fc;margin-top:12px">${score>=goal?"WORLD CLEARED":"YOU DIED"}</div><small>Click to restart</small>`;
+    }
+    function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
+    function loop(ts){const dt=Math.min((ts-lastTime)/1000,.04);lastTime=ts;if(!paused){update(dt);draw();}animationId=requestAnimationFrame(loop);}
+    function pointerDown(e){if(dead){resetRun();return;}if(document.pointerLockElement!==canvas){canvas.requestPointerLock?.();return;}if(e.button===0)mine();if(e.button===2)place();}
+    function pointerMove(e){if(document.pointerLockElement===canvas&&!paused&&!dead){player.yaw-=e.movementX*.0025;player.pitch=clamp(player.pitch-e.movementY*.0025,-1.45,1.45);}}
+    const contextMenu=e=>e.preventDefault();
+    addEventListener("resize",resize);addEventListener("keydown",keyDown);addEventListener("keyup",keyUp);canvas.addEventListener("pointerdown",pointerDown);canvas.addEventListener("pointermove",pointerMove);canvas.addEventListener("contextmenu",contextMenu);back.onclick=()=>{cancelAnimationFrame(animationId);showMainMenu();};
+    currentCleanup=()=>{cancelAnimationFrame(animationId);removeEventListener("resize",resize);removeEventListener("keydown",keyDown);removeEventListener("keyup",keyUp);canvas.removeEventListener("pointerdown",pointerDown);canvas.removeEventListener("pointermove",pointerMove);canvas.removeEventListener("contextmenu",contextMenu);if(document.pointerLockElement===canvas)document.exitPointerLock();canvas.remove();back.remove();pause.remove();ui.remove();crosshair.remove();};
+    resize();setupGL();resetRun();animationId=requestAnimationFrame(loop);
+}
+/*
+    document.body.style.touchAction="none";
+    const canvas=document.createElement("canvas");
     const ctx=canvas.getContext("2d");
     canvas.className="mc3d-canvas";
     function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
@@ -13110,6 +13253,7 @@ function startMinecraft3D(){
     animationId=requestAnimationFrame(loop);
 }
 
+*/
 // ============================================================
 // SKY SURFER
 // ============================================================
